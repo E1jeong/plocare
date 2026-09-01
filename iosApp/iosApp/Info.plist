@@ -4,5 +4,11 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>PloCare requires Bluetooth access to connect and configure the water purifier sensor.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>PloCare requires Bluetooth access to communicate with the sensor.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PloCare requires location access to find nearby IoT devices and display map navigation.</string>
 </dict>
 </plist>
