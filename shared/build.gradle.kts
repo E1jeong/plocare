@@ -47,6 +47,14 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.okhttp)
+
+            // Google Sign In (Credential Manager)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.googleid)
+
+            // Kakao Maps
+            implementation(libs.kakao.maps)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

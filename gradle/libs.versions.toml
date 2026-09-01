@@ -6,14 +6,17 @@ android-targetSdk = "36"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.8.0"
 androidx-core = "1.19.0"
+androidx-credentials = "1.5.0-rc01"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.11.0-beta01"
 androidx-navigation = "2.8.0-alpha10"
 androidx-testExt = "1.3.0"
 coil = "3.5.0"
 composeMultiplatform = "1.11.1"
+googleid = "1.1.1"
 junit = "4.13.2"
 kable = "0.37.0"
+kakao-maps = "2.12.8"
 koin = "4.0.2"
 kotlin = "2.4.10"
 kotlinx-coroutines = "1.11.0"
@@ -70,6 +73,14 @@ multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings
 # Coil
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+
+# Google Sign In (Credential Manager)
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+
+# Kakao Maps
+kakao-maps = { module = "com.kakao.maps.open:android", version.ref = "kakao-maps" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
