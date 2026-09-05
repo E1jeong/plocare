@@ -1,0 +1,483 @@
+package com.senplo.plocare.ui.main
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.senplo.plocare.navigation.MainTabItem
+import com.senplo.plocare.ui.theme.PloCareColor
+
+@Composable
+fun MainTabScreen() {
+    var currentTab by remember { mutableStateOf(MainTabItem.HOME) }
+
+    Scaffold(
+        containerColor = PloCareColor.BgDeep,
+        bottomBar = {
+            NavigationBar(
+                containerColor = PloCareColor.SurfaceDark,
+                contentColor = PloCareColor.TextPrimary,
+                tonalElevation = 8.dp
+            ) {
+                MainTabItem.entries.forEach { tab ->
+                    val selected = currentTab == tab
+                    NavigationBarItem(
+                        selected = selected,
+                        onClick = { currentTab = tab },
+                        label = {
+                            Text(
+                                text = tab.title,
+                                fontSize = 11.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        icon = {
+                            // High-tech circular indicator for icon placeholder
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (selected) PloCareColor.AquaTeal else PloCareColor.TextTertiary
+                                    )
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = PloCareColor.AquaTeal,
+                            selectedTextColor = PloCareColor.AquaTeal,
+                            unselectedIconColor = PloCareColor.TextTertiary,
+                            unselectedTextColor = PloCareColor.TextSecondary,
+                            indicatorColor = PloCareColor.SurfaceCard
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(PloCareColor.BgDeep, PloCareColor.BgMid)
+                    )
+                )
+        ) {
+            when (currentTab) {
+                MainTabItem.HOME -> HomeDashboardTab()
+                MainTabItem.FILTER -> FilterCareTab()
+                MainTabItem.SERVICE -> ServiceCenterTab()
+                MainTabItem.MY -> MySettingsTab()
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 1. HOME DASHBOARD TAB
+// -------------------------------------------------------------
+@Composable
+private fun HomeDashboardTab() {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(20.dp)
+    ) {
+        // Top Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "PloCare Smart System",
+                    color = PloCareColor.TextSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "우리 집 안심 수질 케어",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            // IoT Status Pill
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PloCareColor.SurfaceCard)
+                    .border(1.dp, PloCareColor.SurfaceBorder, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(PloCareColor.StatusGood)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "IoT 연결됨",
+                        color = PloCareColor.StatusGood,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Hero Card: Realtime Filter Life Gauge
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
+            shape = RoundedCornerShape(20.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "종합 필터 잔여 수명",
+                    color = PloCareColor.TextSecondary,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Box(contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(
+                        progress = { 0.78f },
+                        modifier = Modifier.size(140.dp),
+                        color = PloCareColor.AquaTeal,
+                        trackColor = PloCareColor.SurfaceDark,
+                        strokeWidth = 12.dp,
+                        strokeCap = StrokeCap.Round
+                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "78%",
+                            color = Color.White,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "D-42일 권장",
+                            color = PloCareColor.VividCyan,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    MetricItem(label = "실시간 TDS", value = "32 ppm", statusColor = PloCareColor.StatusGood)
+                    MetricItem(label = "오늘 정수량", value = "4.8 L", statusColor = PloCareColor.VividCyan)
+                    MetricItem(label = "통수 압력", value = "0.24 MPa", statusColor = PloCareColor.TextPrimary)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Quick Actions
+        Text(
+            text = "스마트 케어 제어",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ActionCard(
+                title = "카트리지 진단",
+                desc = "센서 정밀 자가검단",
+                modifier = Modifier.weight(1f)
+            )
+            ActionCard(
+                title = "필터 즉시 주문",
+                desc = "맞춤 정품 자동 매칭",
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 2. FILTER CARE TAB
+// -------------------------------------------------------------
+@Composable
+private fun FilterCareTab() {
+    val scrollState = rememberScrollState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(20.dp)
+    ) {
+        Text(
+            text = "3단계 복합 필터 모니터링",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "실시간 유량 및 센서 누적 데이터 기준 잔여량",
+            color = PloCareColor.TextSecondary,
+            fontSize = 13.sp
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        FilterStageCard(stage = "1단계", name = "세디먼트 카본 복합 필터", progress = 0.88f, dDay = "D-64")
+        Spacer(modifier = Modifier.height(12.dp))
+        FilterStageCard(stage = "2단계", name = "UF 중공사막 나노 필터", progress = 0.72f, dDay = "D-42")
+        Spacer(modifier = Modifier.height(12.dp))
+        FilterStageCard(stage = "3단계", name = "포스트 실버 항균 필터", progress = 0.94f, dDay = "D-110")
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = { /* Order navigation */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Text(
+                text = "PloCare 정품 필터 간편 교체 신청",
+                color = PloCareColor.BgDeep,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------
+// 3. SERVICE CENTER TAB
+// -------------------------------------------------------------
+@Composable
+private fun ServiceCenterTab() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(PloCareColor.SurfaceCard)
+                .border(1.dp, PloCareColor.AquaTeal, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(PloCareColor.AquaTeal)
+            )
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "카카오맵 기반 서비스 센터 연동",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "내 주변 인증 전문 기사 방문 케어 및\n가까운 A/S 센터 정보를 실시간 조회합니다.",
+            color = PloCareColor.TextSecondary,
+            fontSize = 13.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+// -------------------------------------------------------------
+// 4. MY SETTINGS TAB
+// -------------------------------------------------------------
+@Composable
+private fun MySettingsTab() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)
+    ) {
+        Text(
+            text = "마이페이지 & 디바이스 관리",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "연결된 PloCare 기기",
+                    color = PloCareColor.TextSecondary,
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "PloCare Smart Purifier Pro",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "펌웨어 v2.4.1 (최신 버전)",
+                    color = PloCareColor.VividCyan,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+// Subcomponents
+@Composable
+private fun MetricItem(label: String, value: String, statusColor: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, color = PloCareColor.TextSecondary, fontSize = 11.sp)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = value, color = statusColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun ActionCard(title: String, desc: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = desc, color = PloCareColor.TextSecondary, fontSize = 11.sp)
+        }
+    }
+}
+
+@Composable
+private fun FilterStageCard(stage: String, name: String, progress: Float, dDay: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(PloCareColor.SurfaceDark)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(text = stage, color = PloCareColor.AquaTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(text = name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Text(text = dDay, color = PloCareColor.VividCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = PloCareColor.AquaTeal,
+                trackColor = PloCareColor.SurfaceDark,
+                strokeCap = StrokeCap.Round
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "권장 통수량 대비 잔여", color = PloCareColor.TextTertiary, fontSize = 11.sp)
+                Text(text = "${(progress * 100).toInt()}%", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
