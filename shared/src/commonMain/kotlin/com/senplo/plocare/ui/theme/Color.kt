@@ -3,6 +3,7 @@ package com.senplo.plocare.ui.theme
 import androidx.compose.ui.graphics.Color
 
 object PloCareColor {
+    val BrandNavy = Color(0xFF071A2E)
     val BgDeep = Color(0xFF070B14)
     val BgMid = Color(0xFF0C162A)
     val SurfaceDark = Color(0xFF131F37)

@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.senplo.plocare.ui.login.LoginScreen
 import com.senplo.plocare.ui.main.MainTabScreen
 import com.senplo.plocare.ui.splash.SplashScreen
 
@@ -25,8 +26,18 @@ fun PloCareNavHost(
         composable<Route.Splash> {
             SplashScreen(
                 onSplashFinished = {
-                    navController.navigate(Route.MainTab) {
+                    navController.navigate(Route.Login) {
                         popUpTo<Route.Splash> { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable<Route.Login> {
+            LoginScreen(
+                onGoogleLoginSuccess = {
+                    navController.navigate(Route.MainTab) {
+                        popUpTo<Route.Login> { inclusive = true }
                     }
                 }
             )
