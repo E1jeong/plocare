@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -108,33 +109,40 @@ fun LoginScreen(
                     )
                     Spacer(Modifier.height(28.dp))
 
-                    when (selectedTab) {
-                        LoginTab.USER -> UserLoginContent(
-                            isLoginInProgress = isGoogleLoginInProgress,
-                            loginError = googleLoginError,
-                            onGoogleLoginClick = {
-                                if (!isGoogleLoginInProgress) {
-                                    isGoogleLoginInProgress = true
-                                    googleLoginError = null
-                                    coroutineScope.launch {
-                                        googleAuthService.signIn()
-                                            .onSuccess(onGoogleLoginSuccess)
-                                            .onFailure { error ->
-                                                googleLoginError = if (
-                                                    error.message?.contains("[28444]") == true
-                                                ) {
-                                                    "Google 로그인 설정이 아직 활성화되지 않았습니다."
-                                                } else {
-                                                    "Google 로그인에 실패했습니다. 다시 시도해 주세요."
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = 160.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        when (selectedTab) {
+                            LoginTab.USER -> UserLoginContent(
+                                isLoginInProgress = isGoogleLoginInProgress,
+                                loginError = googleLoginError,
+                                onGoogleLoginClick = {
+                                    if (!isGoogleLoginInProgress) {
+                                        isGoogleLoginInProgress = true
+                                        googleLoginError = null
+                                        coroutineScope.launch {
+                                            googleAuthService.signIn()
+                                                .onSuccess(onGoogleLoginSuccess)
+                                                .onFailure { error ->
+                                                    googleLoginError = if (
+                                                        error.message?.contains("[28444]") == true
+                                                    ) {
+                                                        "Google 로그인 설정이 아직 활성화되지 않았습니다."
+                                                    } else {
+                                                        "Google 로그인에 실패했습니다. 다시 시도해 주세요."
+                                                    }
                                                 }
-                                            }
-                                        isGoogleLoginInProgress = false
+                                            isGoogleLoginInProgress = false
+                                        }
                                     }
-                                }
-                            },
-                        )
+                                },
+                            )
 
-                        LoginTab.PARTNER -> PartnerComingSoonContent()
+                            LoginTab.PARTNER -> PartnerComingSoonContent()
+                        }
                     }
                 }
             }
@@ -177,7 +185,10 @@ private fun UserLoginContent(
     loginError: String?,
     onGoogleLoginClick: () -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
             text = "내 필터 상태를 바로 확인하세요",
             color = PloCareColor.TextPrimary,
@@ -241,25 +252,23 @@ private fun UserLoginContent(
 @Composable
 private fun PartnerComingSoonContent() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 24.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(52.dp)
                 .background(PloCareColor.SurfaceCard, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = "P",
                 color = PloCareColor.AquaTeal,
-                fontSize = 24.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
             )
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
             text = "파트너 로그인 준비 중",
             color = PloCareColor.TextPrimary,
