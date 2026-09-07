@@ -26,7 +26,7 @@ Report plans and results in Korean.
 Run the narrowest relevant command:
 
 ```powershell
-.\gradlew.bat :shared:test
+.\gradlew.bat :shared:jvmTest
 .\gradlew.bat assembleDebug
 .\gradlew.bat check
 ```
