@@ -2,6 +2,7 @@ package com.senplo.plocare.ui.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,13 +13,18 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -35,6 +41,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +65,7 @@ private enum class LoginTab {
 @Composable
 fun LoginScreen(
     onGoogleLoginSuccess: (GoogleUser) -> Unit,
+    onPartnerSignupClick: () -> Unit,
 ) {
     var selectedTab by remember { mutableStateOf(LoginTab.USER) }
     var isGoogleLoginInProgress by remember { mutableStateOf(false) }
@@ -65,17 +76,21 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PloCareColor.BrandNavy)
-            .statusBarsPadding()
-            .padding(horizontal = 24.dp),
-        contentAlignment = Alignment.Center,
+            .background(PloCareColor.BrandNavy),
     ) {
         Column(
             modifier = Modifier
+                .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .widthIn(max = 420.dp),
+                .widthIn(max = 420.dp)
+                .statusBarsPadding()
+                .imePadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(Modifier.height(24.dp))
             FlowRingMark()
             Spacer(Modifier.height(24.dp))
             Text(
@@ -141,11 +156,14 @@ fun LoginScreen(
                                 },
                             )
 
-                            LoginTab.PARTNER -> PartnerComingSoonContent()
+                            LoginTab.PARTNER -> PartnerLoginContent(
+                                onSignupClick = onPartnerSignupClick,
+                            )
                         }
                     }
                 }
             }
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
@@ -250,38 +268,119 @@ private fun UserLoginContent(
 }
 
 @Composable
-private fun PartnerComingSoonContent() {
+private fun PartnerLoginContent(
+    onSignupClick: () -> Unit,
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var formError by remember { mutableStateOf<String?>(null) }
+
+    fun submitPartnerLogin() {
+        val trimmedEmail = email.trim()
+        when {
+            trimmedEmail.isEmpty() || password.isEmpty() -> {
+                formError = "이메일과 비밀번호를 입력해 주세요."
+            }
+            else -> {
+                formError = null
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .background(PloCareColor.SurfaceCard, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "P",
-                color = PloCareColor.AquaTeal,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        Spacer(Modifier.height(16.dp))
         Text(
-            text = "파트너 로그인 준비 중",
+            text = "현장 파트너로 로그인하세요",
             color = PloCareColor.TextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "파트너 전용 서비스는 추후 제공될 예정입니다.",
+            text = "승인된 파트너 계정으로 일정을 확인하세요.",
             color = PloCareColor.TextSecondary,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(20.dp))
+        AuthFormField(
+            value = email,
+            onValueChange = {
+                email = it
+                formError = null
+            },
+            label = "이메일",
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next,
+            ),
+        )
+        Spacer(Modifier.height(12.dp))
+        AuthFormField(
+            value = password,
+            onValueChange = {
+                password = it
+                formError = null
+            },
+            label = "비밀번호",
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(onDone = { submitPartnerLogin() }),
+            visualTransformation = if (passwordVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingLabel = if (passwordVisible) "숨김" else "표시",
+            onTrailingClick = { passwordVisible = !passwordVisible },
+        )
+        Spacer(Modifier.height(20.dp))
+        Button(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            onClick = { submitPartnerLogin() },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PloCareColor.AquaTeal,
+                contentColor = PloCareColor.BgDeep,
+            ),
+        ) {
+            Text(
+                text = "로그인",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        if (formError != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = formError.orEmpty(),
+                color = PloCareColor.StatusAlert,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Row {
+            Text(
+                text = "계정이 없나요? ",
+                color = PloCareColor.TextTertiary,
+                fontSize = 13.sp,
+            )
+            Text(
+                text = "가입 요청",
+                color = PloCareColor.AquaTeal,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onSignupClick),
+            )
+        }
     }
 }
 

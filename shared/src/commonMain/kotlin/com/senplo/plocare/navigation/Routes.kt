@@ -10,6 +10,9 @@ sealed interface Route {
     data object Login : Route
 
     @Serializable
+    data object PartnerSignup : Route
+
+    @Serializable
     data object MainTab : Route
 }
 
