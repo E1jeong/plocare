@@ -13,18 +13,17 @@ sealed interface Route {
     data object PartnerSignup : Route
 
     @Serializable
-    data object MainTab : Route
+    data object ConsumerMain : Route
 
     @Serializable
     data object PartnerMain : Route
 }
 
-enum class MainTabItem(
-    val title: String,
-    val iconName: String
+enum class ConsumerTabItem(
+    val title: String
 ) {
-    HOME("대시보드", "home"),
-    FILTER("필터 케어", "water_drop"),
-    SERVICE("서비스 센터", "location_on"),
-    MY("마이페이지", "person")
+    DASHBOARD("대시보드"),
+    FILTER_CARE("필터 관리·설정"),
+    WATER_REPORT("물 사용 리포트"),
+    MY_PAGE("마이페이지")
 }

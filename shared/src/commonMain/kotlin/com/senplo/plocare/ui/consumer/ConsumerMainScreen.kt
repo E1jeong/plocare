@@ -1,4 +1,4 @@
-package com.senplo.plocare.ui.main
+package com.senplo.plocare.ui.consumer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -42,12 +43,18 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.senplo.plocare.navigation.MainTabItem
+import com.senplo.plocare.navigation.ConsumerTabItem
 import com.senplo.plocare.ui.theme.PloCareColor
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.nav_filter_care
+import plocare.shared.generated.resources.nav_home
+import plocare.shared.generated.resources.nav_my_page
+import plocare.shared.generated.resources.nav_water_report
 
 @Composable
-fun MainTabScreen() {
-    var currentTab by remember { mutableStateOf(MainTabItem.HOME) }
+fun ConsumerMainScreen() {
+    var currentTab by remember { mutableStateOf(ConsumerTabItem.DASHBOARD) }
 
     Scaffold(
         containerColor = PloCareColor.BgDeep,
@@ -57,7 +64,7 @@ fun MainTabScreen() {
                 contentColor = PloCareColor.TextPrimary,
                 tonalElevation = 8.dp
             ) {
-                MainTabItem.entries.forEach { tab ->
+                ConsumerTabItem.entries.forEach { tab ->
                     val selected = currentTab == tab
                     NavigationBarItem(
                         selected = selected,
@@ -65,19 +72,15 @@ fun MainTabScreen() {
                         label = {
                             Text(
                                 text = tab.title,
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         icon = {
-                            // High-tech circular indicator for icon placeholder
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (selected) PloCareColor.AquaTeal else PloCareColor.TextTertiary
-                                    )
+                            Icon(
+                                painter = painterResource(tab.iconResource()),
+                                contentDescription = tab.title,
+                                modifier = Modifier.size(24.dp),
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -103,20 +106,27 @@ fun MainTabScreen() {
                 )
         ) {
             when (currentTab) {
-                MainTabItem.HOME -> HomeDashboardTab()
-                MainTabItem.FILTER -> FilterCareTab()
-                MainTabItem.SERVICE -> ServiceCenterTab()
-                MainTabItem.MY -> MySettingsTab()
+                ConsumerTabItem.DASHBOARD -> ConsumerDashboardTab()
+                ConsumerTabItem.FILTER_CARE -> FilterCareAndSettingsTab()
+                ConsumerTabItem.WATER_REPORT -> WaterReportTab()
+                ConsumerTabItem.MY_PAGE -> MyPageTab()
             }
         }
     }
+}
+
+private fun ConsumerTabItem.iconResource() = when (this) {
+    ConsumerTabItem.DASHBOARD -> Res.drawable.nav_home
+    ConsumerTabItem.FILTER_CARE -> Res.drawable.nav_filter_care
+    ConsumerTabItem.WATER_REPORT -> Res.drawable.nav_water_report
+    ConsumerTabItem.MY_PAGE -> Res.drawable.nav_my_page
 }
 
 // -------------------------------------------------------------
 // 1. HOME DASHBOARD TAB
 // -------------------------------------------------------------
 @Composable
-private fun HomeDashboardTab() {
+private fun ConsumerDashboardTab() {
     val scrollState = rememberScrollState()
 
     Column(
@@ -264,7 +274,7 @@ private fun HomeDashboardTab() {
 // 2. FILTER CARE TAB
 // -------------------------------------------------------------
 @Composable
-private fun FilterCareTab() {
+private fun FilterCareAndSettingsTab() {
     val scrollState = rememberScrollState()
 
     Column(
@@ -274,7 +284,7 @@ private fun FilterCareTab() {
             .padding(20.dp)
     ) {
         Text(
-            text = "3단계 복합 필터 모니터링",
+            text = "필터 관리·설정",
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -314,45 +324,62 @@ private fun FilterCareTab() {
 }
 
 // -------------------------------------------------------------
-// 3. SERVICE CENTER TAB
+// 3. WATER REPORT TAB
 // -------------------------------------------------------------
 @Composable
-private fun ServiceCenterTab() {
+private fun WaterReportTab() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(PloCareColor.SurfaceCard)
-                .border(1.dp, PloCareColor.AquaTeal, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(PloCareColor.AquaTeal)
-            )
-        }
-        Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "카카오맵 기반 서비스 센터 연동",
+            text = "물 사용 리포트",
             color = Color.White,
-            fontSize = 18.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "내 주변 인증 전문 기사 방문 케어 및\n가까운 A/S 센터 정보를 실시간 조회합니다.",
+            text = "우리 집 정수 사용량과 절감 효과를 확인하세요.",
             color = PloCareColor.TextSecondary,
-            fontSize = 13.sp,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            fontSize = 13.sp
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
+            shape = RoundedCornerShape(16.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                MetricItem("오늘", "4.8 L", PloCareColor.VividCyan)
+                MetricItem("30일 누적", "142 L", PloCareColor.TextPrimary)
+                MetricItem("전체 누적", "4,820 L", PloCareColor.AquaTeal)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        ReportCard(
+            title = "최근 14일 사용량",
+            description = "일평균 4.7 L · 평균 사용량 기준으로 안정적입니다."
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        ReportCard(
+            title = "환경 절감 효과",
+            description = "2 L 생수병 2,410개를 대체했어요."
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        ReportCard(
+            title = "필터 교체 이력",
+            description = "2026.08.12 · 1단계 세디먼트 · 직접 교체"
         )
     }
 }
@@ -361,14 +388,14 @@ private fun ServiceCenterTab() {
 // 4. MY SETTINGS TAB
 // -------------------------------------------------------------
 @Composable
-private fun MySettingsTab() {
+private fun MyPageTab() {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp)
     ) {
         Text(
-            text = "마이페이지 & 디바이스 관리",
+            text = "마이페이지",
             color = Color.White,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -406,6 +433,31 @@ private fun MySettingsTab() {
 }
 
 // Subcomponents
+@Composable
+private fun ReportCard(title: String, description: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = title,
+                color = PloCareColor.TextPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = description,
+                color = PloCareColor.TextSecondary,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
 @Composable
 private fun MetricItem(label: String, value: String, statusColor: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {

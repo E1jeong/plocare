@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.senplo.plocare.ui.login.LoginScreen
 import com.senplo.plocare.ui.login.PartnerSignupScreen
-import com.senplo.plocare.ui.main.MainTabScreen
+import com.senplo.plocare.ui.consumer.ConsumerMainScreen
 import com.senplo.plocare.ui.partner.PartnerMainScreen
 import com.senplo.plocare.ui.splash.SplashScreen
 import com.senplo.plocare.ui.theme.AppAudience
@@ -64,7 +64,7 @@ fun PloCareNavHost(
                 onAudienceChange = onAudienceChange,
                 onGoogleLoginSuccess = {
                     onAudienceChange(AppAudience.USER)
-                    navController.navigate(Route.MainTab) {
+                    navController.navigate(Route.ConsumerMain) {
                         popUpTo<Route.Login> { inclusive = true }
                     }
                 },
@@ -87,8 +87,8 @@ fun PloCareNavHost(
             )
         }
 
-        composable<Route.MainTab> {
-            MainTabScreen()
+        composable<Route.ConsumerMain> {
+            ConsumerMainScreen()
         }
 
         composable<Route.PartnerMain> {
