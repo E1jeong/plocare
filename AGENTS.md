@@ -12,7 +12,7 @@ Report plans and results in Korean.
 | --- | --- | --- | --- |
 | `shared/` | Shared Compose UI, domain logic, filter calculation, IoT/Bluetooth integration, and platform abstractions | `shared/src/commonMain/kotlin/` | None |
 | `androidApp/` | Android application shell | `androidApp/src/main/` | None |
-| `desktopApp/` | Desktop application shell | `desktopApp/src/desktopMain/` | None |
+| `desktopApp/` | Desktop application shell | `desktopApp/src/desktopMain/` | `desktopApp/AGENTS.md` |
 | `iosApp/` | iOS SwiftUI host application | `iosApp/iosApp/` | None |
 
 ## Change Gates
@@ -30,5 +30,7 @@ Run the narrowest relevant command:
 .\gradlew.bat assembleDebug
 .\gradlew.bat check
 ```
+
+For desktop app execution and packaging rules, see [`desktopApp/AGENTS.md`](file:///C:/Users/Unionbiometrics/Desktop/dev/1.project/plocare/desktopApp/AGENTS.md).
 
 Use `./gradlew` with the same tasks on Linux, WSL, or macOS.
