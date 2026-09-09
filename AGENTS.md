@@ -20,6 +20,7 @@ Report plans and results in Korean.
 - Keep business logic, filter calculation algorithms, and shared UI in `shared/`; platform applications remain thin hosts.
 - Maintain platform-specific features (BLE, Kakao Map, Wi-Fi provisioning) behind `expect`/`actual` abstractions or dedicated interfaces.
 - Preserve separation between customer visibility flows and manager/technician service flows.
+- Keep consumer and partner palettes in `shared/src/commonMain/kotlin/com/senplo/plocare/ui/theme/` and switch them through `AppAudience`; screens read `PloCareColor` tokens.
 
 ## Verify
 

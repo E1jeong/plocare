@@ -125,12 +125,14 @@ fun SplashScreen(
         onSplashFinished()
     }
 
+    val colors = PloCareColor
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.radialGradient(
-                    colors = listOf(PloCareColor.BgMid, PloCareColor.BgDeep),
+                    colors = listOf(colors.BgMid, colors.BgDeep),
                     radius = 1200f
                 )
             )
@@ -171,7 +173,7 @@ fun SplashScreen(
 
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(PloCareColor.LuminousIce, PloCareColor.VividCyan),
+                        colors = listOf(colors.LuminousIce, colors.VividCyan),
                         center = Offset(cx, curDropY),
                         radius = dropR * 1.5f
                     ),
@@ -194,7 +196,7 @@ fun SplashScreen(
                         val radiusY = radiusX * 0.32f
                         val alpha = (1f - ringP) * 0.65f
                         drawOval(
-                            color = PloCareColor.AquaTeal.copy(alpha = alpha),
+                            color = colors.AquaTeal.copy(alpha = alpha),
                             topLeft = Offset(cx - radiusX, impactY - radiusY),
                             size = Size(radiusX * 2, radiusY * 2),
                             style = Stroke(width = max(1f, 2.dp.toPx() * (1f - ringP)))
@@ -205,7 +207,7 @@ fun SplashScreen(
 
             // 3. Concept 3 P Logo Base Geometry
             val logoBrush = Brush.verticalGradient(
-                colors = listOf(PloCareColor.AquaTeal, PloCareColor.VividCyan),
+                colors = listOf(colors.AquaTeal, colors.VividCyan),
                 startY = y0,
                 endY = y1
             )
@@ -289,7 +291,7 @@ fun SplashScreen(
                     val streamBottom = impactY - (impactY - y1) * sp
                     drawLine(
                         brush = Brush.verticalGradient(
-                            colors = listOf(PloCareColor.AquaTeal, PloCareColor.VividCyan.copy(alpha = 0.4f)),
+                            colors = listOf(colors.AquaTeal, colors.VividCyan.copy(alpha = 0.4f)),
                             startY = curStemTop,
                             endY = streamBottom
                         ),
@@ -361,7 +363,7 @@ fun SplashScreen(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            PloCareColor.VividCyan.copy(alpha = 0.8f),
+                            colors.VividCyan.copy(alpha = 0.8f),
                             Color.White
                         ),
                         startX = pulseX - trailLen,
@@ -372,7 +374,7 @@ fun SplashScreen(
                     strokeWidth = waveTh * 0.9f
                 )
                 drawCircle(
-                    color = PloCareColor.LuminousIce,
+                    color = colors.LuminousIce,
                     radius = 3.5.dp.toPx(),
                     center = Offset(pulseX, waveY)
                 )
@@ -398,7 +400,7 @@ fun SplashScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "INTELLIGENT FILTER SYSTEM",
-                    color = PloCareColor.TextSecondary.copy(alpha = textAlpha.value * 0.85f),
+                    color = colors.TextSecondary.copy(alpha = textAlpha.value * 0.85f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 3.5.sp,

@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.auth.GoogleUser
 import com.senplo.plocare.auth.rememberGoogleAuthService
+import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareColor
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -57,17 +58,14 @@ import plocare.shared.generated.resources.Res
 import plocare.shared.generated.resources.google_logo
 import plocare.shared.generated.resources.plocare_flow_ring
 
-private enum class LoginTab {
-    USER,
-    PARTNER,
-}
-
 @Composable
 fun LoginScreen(
+    audience: AppAudience,
+    onAudienceChange: (AppAudience) -> Unit,
     onGoogleLoginSuccess: (GoogleUser) -> Unit,
+    onPartnerLoginSuccess: () -> Unit,
     onPartnerSignupClick: () -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(LoginTab.USER) }
     var isGoogleLoginInProgress by remember { mutableStateOf(false) }
     var googleLoginError by remember { mutableStateOf<String?>(null) }
     val googleAuthService = rememberGoogleAuthService()
@@ -116,10 +114,10 @@ fun LoginScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     LoginTabs(
-                        selectedTab = selectedTab,
+                        selectedTab = audience,
                         onTabSelected = {
-                            selectedTab = it
                             googleLoginError = null
+                            onAudienceChange(it)
                         },
                     )
                     Spacer(Modifier.height(28.dp))
@@ -130,8 +128,8 @@ fun LoginScreen(
                             .defaultMinSize(minHeight = 160.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        when (selectedTab) {
-                            LoginTab.USER -> UserLoginContent(
+                        when (audience) {
+                            AppAudience.USER -> UserLoginContent(
                                 isLoginInProgress = isGoogleLoginInProgress,
                                 loginError = googleLoginError,
                                 onGoogleLoginClick = {
@@ -156,8 +154,9 @@ fun LoginScreen(
                                 },
                             )
 
-                            LoginTab.PARTNER -> PartnerLoginContent(
+                            AppAudience.PARTNER -> PartnerLoginContent(
                                 onSignupClick = onPartnerSignupClick,
+                                onLoginSuccess = onPartnerLoginSuccess,
                             )
                         }
                     }
@@ -170,14 +169,14 @@ fun LoginScreen(
 
 @Composable
 private fun LoginTabs(
-    selectedTab: LoginTab,
-    onTabSelected: (LoginTab) -> Unit,
+    selectedTab: AppAudience,
+    onTabSelected: (AppAudience) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        LoginTab.entries.forEach { tab ->
+        AppAudience.entries.forEach { tab ->
             val selected = selectedTab == tab
             Button(
                 modifier = Modifier.weight(1f),
@@ -189,7 +188,7 @@ private fun LoginTabs(
                 ),
             ) {
                 Text(
-                    text = if (tab == LoginTab.USER) "사용자" else "파트너",
+                    text = if (tab == AppAudience.USER) "사용자" else "파트너",
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -270,6 +269,7 @@ private fun UserLoginContent(
 @Composable
 private fun PartnerLoginContent(
     onSignupClick: () -> Unit,
+    onLoginSuccess: () -> Unit,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -284,6 +284,7 @@ private fun PartnerLoginContent(
             }
             else -> {
                 formError = null
+                onLoginSuccess()
             }
         }
     }

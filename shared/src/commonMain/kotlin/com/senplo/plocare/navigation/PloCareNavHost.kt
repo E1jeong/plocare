@@ -11,10 +11,13 @@ import com.senplo.plocare.ui.login.LoginScreen
 import com.senplo.plocare.ui.login.PartnerSignupScreen
 import com.senplo.plocare.ui.main.MainTabScreen
 import com.senplo.plocare.ui.splash.SplashScreen
+import com.senplo.plocare.ui.theme.AppAudience
 
 @Composable
 fun PloCareNavHost(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    audience: AppAudience = AppAudience.USER,
+    onAudienceChange: (AppAudience) -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -56,12 +59,22 @@ fun PloCareNavHost(
 
         composable<Route.Login> {
             LoginScreen(
+                audience = audience,
+                onAudienceChange = onAudienceChange,
                 onGoogleLoginSuccess = {
+                    onAudienceChange(AppAudience.USER)
+                    navController.navigate(Route.MainTab) {
+                        popUpTo<Route.Login> { inclusive = true }
+                    }
+                },
+                onPartnerLoginSuccess = {
+                    onAudienceChange(AppAudience.PARTNER)
                     navController.navigate(Route.MainTab) {
                         popUpTo<Route.Login> { inclusive = true }
                     }
                 },
                 onPartnerSignupClick = {
+                    onAudienceChange(AppAudience.PARTNER)
                     navController.navigate(Route.PartnerSignup)
                 },
             )
