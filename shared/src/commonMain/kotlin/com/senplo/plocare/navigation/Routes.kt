@@ -14,6 +14,9 @@ sealed interface Route {
 
     @Serializable
     data object MainTab : Route
+
+    @Serializable
+    data object PartnerMain : Route
 }
 
 enum class MainTabItem(

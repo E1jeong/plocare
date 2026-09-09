@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import com.senplo.plocare.ui.login.LoginScreen
 import com.senplo.plocare.ui.login.PartnerSignupScreen
 import com.senplo.plocare.ui.main.MainTabScreen
+import com.senplo.plocare.ui.partner.PartnerMainScreen
 import com.senplo.plocare.ui.splash.SplashScreen
 import com.senplo.plocare.ui.theme.AppAudience
 
@@ -69,7 +70,7 @@ fun PloCareNavHost(
                 },
                 onPartnerLoginSuccess = {
                     onAudienceChange(AppAudience.PARTNER)
-                    navController.navigate(Route.MainTab) {
+                    navController.navigate(Route.PartnerMain) {
                         popUpTo<Route.Login> { inclusive = true }
                     }
                 },
@@ -88,6 +89,10 @@ fun PloCareNavHost(
 
         composable<Route.MainTab> {
             MainTabScreen()
+        }
+
+        composable<Route.PartnerMain> {
+            PartnerMainScreen()
         }
     }
 }

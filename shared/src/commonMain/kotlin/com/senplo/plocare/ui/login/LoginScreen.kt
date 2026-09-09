@@ -274,19 +274,9 @@ private fun PartnerLoginContent(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var formError by remember { mutableStateOf<String?>(null) }
 
     fun submitPartnerLogin() {
-        val trimmedEmail = email.trim()
-        when {
-            trimmedEmail.isEmpty() || password.isEmpty() -> {
-                formError = "이메일과 비밀번호를 입력해 주세요."
-            }
-            else -> {
-                formError = null
-                onLoginSuccess()
-            }
-        }
+        onLoginSuccess()
     }
 
     Column(
@@ -309,10 +299,7 @@ private fun PartnerLoginContent(
         Spacer(Modifier.height(20.dp))
         AuthFormField(
             value = email,
-            onValueChange = {
-                email = it
-                formError = null
-            },
+            onValueChange = { email = it },
             label = "이메일",
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -322,10 +309,7 @@ private fun PartnerLoginContent(
         Spacer(Modifier.height(12.dp))
         AuthFormField(
             value = password,
-            onValueChange = {
-                password = it
-                formError = null
-            },
+            onValueChange = { password = it },
             label = "비밀번호",
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -356,15 +340,6 @@ private fun PartnerLoginContent(
                 text = "로그인",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-            )
-        }
-        if (formError != null) {
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = formError.orEmpty(),
-                color = PloCareColor.StatusAlert,
-                fontSize = 13.sp,
-                textAlign = TextAlign.Center,
             )
         }
         Spacer(Modifier.height(16.dp))
