@@ -13,11 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -36,6 +36,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.ui.theme.PloCareColor
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.nav_home
+import plocare.shared.generated.resources.nav_my_page
+import plocare.shared.generated.resources.nav_partner_customers
+import plocare.shared.generated.resources.nav_partner_inventory
+import plocare.shared.generated.resources.nav_partner_visits
 
 private enum class PartnerTab(
     val title: String,
@@ -71,14 +78,10 @@ fun PartnerMainScreen() {
                         selected = selected,
                         onClick = { currentTab = tab },
                         icon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(if (selected) 10.dp else 8.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (selected) PloCareColor.AquaTeal
-                                        else PloCareColor.TextTertiary,
-                                    ),
+                            Icon(
+                                painter = painterResource(tab.iconResource()),
+                                contentDescription = tab.title,
+                                modifier = Modifier.size(24.dp),
                             )
                         },
                         label = {
@@ -119,6 +122,14 @@ fun PartnerMainScreen() {
             }
         }
     }
+}
+
+private fun PartnerTab.iconResource() = when (this) {
+    PartnerTab.WORK -> Res.drawable.nav_home
+    PartnerTab.VISITS -> Res.drawable.nav_partner_visits
+    PartnerTab.CUSTOMERS -> Res.drawable.nav_partner_customers
+    PartnerTab.INVENTORY -> Res.drawable.nav_partner_inventory
+    PartnerTab.MY -> Res.drawable.nav_my_page
 }
 
 @Composable
