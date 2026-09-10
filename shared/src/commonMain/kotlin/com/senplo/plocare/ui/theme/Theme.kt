@@ -40,7 +40,7 @@ fun PloCareTheme(
     val colorScheme = darkColorScheme(
         primary = colors.AquaTeal,
         secondary = colors.VividCyan,
-        background = colors.BgDeep,
+        background = colors.BrandNavy,
         surface = colors.SurfaceDark,
         surfaceVariant = colors.SurfaceCard,
         onPrimary = colors.BgDeep,

@@ -96,7 +96,7 @@ fun PartnerMainScreen() {
     var currentTab by remember { mutableStateOf(PartnerTab.WORK) }
 
     Scaffold(
-        containerColor = PloCareColor.BgDeep,
+        containerColor = PloCareColor.BrandNavy,
         bottomBar = {
             NavigationBar(containerColor = PloCareColor.SurfaceDark, tonalElevation = 8.dp) {
                 PartnerTab.entries.forEach { tab ->
@@ -127,8 +127,10 @@ fun PartnerMainScreen() {
         },
     ) { innerPadding ->
         Box(
-            modifier = Modifier.fillMaxSize().padding(innerPadding)
-                .background(Brush.verticalGradient(listOf(PloCareColor.BgDeep, PloCareColor.BgMid))),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(PloCareColor.BrandNavy, PloCareColor.BgDeep)))
+                .padding(innerPadding),
         ) {
             when (currentTab) {
                 PartnerTab.WORK -> WorkDashboardTab(onInventoryClick = { currentTab = PartnerTab.INVENTORY })
