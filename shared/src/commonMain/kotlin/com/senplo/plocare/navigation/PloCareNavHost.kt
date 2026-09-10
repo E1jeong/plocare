@@ -13,6 +13,7 @@ import com.senplo.plocare.ui.consumer.ConsumerMainScreen
 import com.senplo.plocare.ui.partner.PartnerMainScreen
 import com.senplo.plocare.ui.splash.SplashScreen
 import com.senplo.plocare.ui.theme.AppAudience
+import com.senplo.plocare.ui.theme.PloCareTheme
 
 @Composable
 fun PloCareNavHost(
@@ -88,11 +89,15 @@ fun PloCareNavHost(
         }
 
         composable<Route.ConsumerMain> {
-            ConsumerMainScreen()
+            PloCareTheme(audience = AppAudience.USER) {
+                ConsumerMainScreen()
+            }
         }
 
         composable<Route.PartnerMain> {
-            PartnerMainScreen()
+            PloCareTheme(audience = AppAudience.PARTNER) {
+                PartnerMainScreen()
+            }
         }
     }
 }

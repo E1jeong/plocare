@@ -38,7 +38,7 @@ fun ConsumerMainScreen() {
     var filterCareTargetIds by remember { mutableStateOf<List<String>>(emptyList()) }
 
     Scaffold(
-        containerColor = PloCareColor.BgDeep,
+        containerColor = PloCareColor.BrandNavy,
         bottomBar = {
             NavigationBar(
                 containerColor = PloCareColor.SurfaceDark,
@@ -72,8 +72,8 @@ fun ConsumerMainScreen() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(Brush.verticalGradient(listOf(PloCareColor.BgDeep, PloCareColor.BgMid))),
+                .background(Brush.verticalGradient(listOf(PloCareColor.BrandNavy, PloCareColor.BgDeep)))
+                .padding(innerPadding),
         ) {
             when (currentTab) {
                 ConsumerTabItem.DASHBOARD -> HomeDashboardScreen(
