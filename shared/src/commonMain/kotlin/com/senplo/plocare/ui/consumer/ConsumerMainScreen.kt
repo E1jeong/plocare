@@ -14,14 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.NavigationBar
@@ -44,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.navigation.ConsumerTabItem
+import com.senplo.plocare.ui.consumer.dashboard.HomeDashboardScreen
 import com.senplo.plocare.ui.theme.PloCareColor
 import org.jetbrains.compose.resources.painterResource
 import plocare.shared.generated.resources.Res
@@ -55,6 +54,7 @@ import plocare.shared.generated.resources.nav_water_report
 @Composable
 fun ConsumerMainScreen() {
     var currentTab by remember { mutableStateOf(ConsumerTabItem.DASHBOARD) }
+    var filterCareTargetIds by remember { mutableStateOf<List<String>>(emptyList()) }
 
     Scaffold(
         containerColor = PloCareColor.BgDeep,
@@ -106,8 +106,18 @@ fun ConsumerMainScreen() {
                 )
         ) {
             when (currentTab) {
-                ConsumerTabItem.DASHBOARD -> ConsumerDashboardTab()
-                ConsumerTabItem.FILTER_CARE -> FilterCareAndSettingsTab()
+                ConsumerTabItem.DASHBOARD -> HomeDashboardScreen(
+                    onRequestReplacement = { filterIds ->
+                        filterCareTargetIds = filterIds
+                        currentTab = ConsumerTabItem.FILTER_CARE
+                    },
+                    onOpenDeviceSettings = {
+                        currentTab = ConsumerTabItem.FILTER_CARE
+                    },
+                )
+                ConsumerTabItem.FILTER_CARE -> FilterCareAndSettingsTab(
+                    preselectedFilterIds = filterCareTargetIds,
+                )
                 ConsumerTabItem.WATER_REPORT -> WaterReportTab()
                 ConsumerTabItem.MY_PAGE -> MyPageTab()
             }
@@ -122,159 +132,8 @@ private fun ConsumerTabItem.iconResource() = when (this) {
     ConsumerTabItem.MY_PAGE -> Res.drawable.nav_my_page
 }
 
-// -------------------------------------------------------------
-// 1. HOME DASHBOARD TAB
-// -------------------------------------------------------------
 @Composable
-private fun ConsumerDashboardTab() {
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(20.dp)
-    ) {
-        // Top Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "PloCare Smart System",
-                    color = PloCareColor.TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "우리 집 안심 수질 케어",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            // IoT Status Pill
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(PloCareColor.SurfaceCard)
-                    .border(1.dp, PloCareColor.SurfaceBorder, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(PloCareColor.StatusGood)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "IoT 연결됨",
-                        color = PloCareColor.StatusGood,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Hero Card: Realtime Filter Life Gauge
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
-            shape = RoundedCornerShape(20.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "종합 필터 잔여 수명",
-                    color = PloCareColor.TextSecondary,
-                    fontSize = 13.sp
-                )
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        progress = { 0.78f },
-                        modifier = Modifier.size(140.dp),
-                        color = PloCareColor.AquaTeal,
-                        trackColor = PloCareColor.SurfaceDark,
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "78%",
-                            color = Color.White,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "D-42일 권장",
-                            color = PloCareColor.VividCyan,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MetricItem(label = "실시간 TDS", value = "32 ppm", statusColor = PloCareColor.StatusGood)
-                    MetricItem(label = "오늘 정수량", value = "4.8 L", statusColor = PloCareColor.VividCyan)
-                    MetricItem(label = "통수 압력", value = "0.24 MPa", statusColor = PloCareColor.TextPrimary)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Quick Actions
-        Text(
-            text = "스마트 케어 제어",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ActionCard(
-                title = "카트리지 진단",
-                desc = "센서 정밀 자가검단",
-                modifier = Modifier.weight(1f)
-            )
-            ActionCard(
-                title = "필터 즉시 주문",
-                desc = "맞춤 정품 자동 매칭",
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-// -------------------------------------------------------------
-// 2. FILTER CARE TAB
-// -------------------------------------------------------------
-@Composable
-private fun FilterCareAndSettingsTab() {
+private fun FilterCareAndSettingsTab(preselectedFilterIds: List<String>) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -291,7 +150,11 @@ private fun FilterCareAndSettingsTab() {
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "실시간 유량 및 센서 누적 데이터 기준 잔여량",
+            text = if (preselectedFilterIds.isEmpty()) {
+                "실시간 유량 및 센서 누적 데이터 기준 잔여량"
+            } else {
+                "대시보드에서 선택한 필터로 교체 신청을 이어서 진행하세요."
+            },
             color = PloCareColor.TextSecondary,
             fontSize = 13.sp
         )
@@ -464,22 +327,6 @@ private fun MetricItem(label: String, value: String, statusColor: Color) {
         Text(text = label, color = PloCareColor.TextSecondary, fontSize = 11.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = value, color = statusColor, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun ActionCard(title: String, desc: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = PloCareColor.SurfaceCard),
-        shape = RoundedCornerShape(14.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, PloCareColor.SurfaceBorder)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = desc, color = PloCareColor.TextSecondary, fontSize = 11.sp)
-        }
     }
 }
 
