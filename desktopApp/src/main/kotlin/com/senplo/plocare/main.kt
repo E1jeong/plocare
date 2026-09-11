@@ -8,7 +8,7 @@ import androidx.compose.ui.window.rememberWindowState
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "PloCare Consumer",
+        title = "PloCare",
         state = rememberWindowState(width = 440.dp, height = 860.dp),
     ) {
         App()
