@@ -1,0 +1,58 @@
+name: Deploy web demo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build web demo
+        run: ./gradlew :webApp:wasmJsBrowserDistribution --no-daemon --max-workers=1
+
+      - name: Assemble Pages site
+        run: |
+          mkdir -p build/pages/demo
+          cp docs/*.html build/pages/
+          cp -R webApp/build/dist/wasmJs/productionExecutable/. build/pages/demo/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/pages
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
