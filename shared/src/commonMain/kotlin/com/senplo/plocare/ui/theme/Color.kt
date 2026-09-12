@@ -16,13 +16,24 @@ data class PloCareColors(
     val VividCyan: Color,
     val LuminousIce: Color,
     val DeepBlue: Color,
+    val FilterStage3: Color,
+    val FilterStage4: Color,
+    val FilterStage5: Color,
     val TextPrimary: Color,
     val TextSecondary: Color,
     val TextTertiary: Color,
     val StatusGood: Color,
     val StatusWarn: Color,
     val StatusAlert: Color,
-)
+) {
+    fun filterStageColor(stage: Int): Color = when (stage) {
+        1 -> AquaTeal
+        2 -> VividCyan
+        3 -> FilterStage3
+        4 -> FilterStage4
+        else -> FilterStage5
+    }
+}
 
 val UserPloCareColors = PloCareColors(
     BrandNavy = Color(0xFF071A2E),
@@ -35,6 +46,9 @@ val UserPloCareColors = PloCareColors(
     VividCyan = Color(0xFF38BDF8),
     LuminousIce = Color(0xFFF0FDFF),
     DeepBlue = Color(0xFF0284C7),
+    FilterStage3 = Color(0xFF818CF8),
+    FilterStage4 = Color(0xFFFBBF24),
+    FilterStage5 = Color(0xFFF472B6),
     TextPrimary = Color(0xFFFFFFFF),
     TextSecondary = Color(0xFF94A3B8),
     TextTertiary = Color(0xFF64748B),
@@ -54,6 +68,9 @@ val PartnerPloCareColors = PloCareColors(
     VividCyan = Color(0xFF93C5FD),
     LuminousIce = Color(0xFFEFF6FF),
     DeepBlue = Color(0xFF2563EB),
+    FilterStage3 = Color(0xFFA78BFA),
+    FilterStage4 = Color(0xFFFCD34D),
+    FilterStage5 = Color(0xFFF9A8D4),
     TextPrimary = Color(0xFFFFFFFF),
     TextSecondary = Color(0xFF94A3B8),
     TextTertiary = Color(0xFF64748B),

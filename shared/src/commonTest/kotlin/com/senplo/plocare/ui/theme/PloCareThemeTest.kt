@@ -12,6 +12,9 @@ class PloCareThemeTest {
         assertEquals(Color(0xFF071A2E), UserPloCareColors.BrandNavy)
         assertEquals(Color(0xFF2DD4BF), UserPloCareColors.AquaTeal)
         assertEquals(Color(0xFF38BDF8), UserPloCareColors.VividCyan)
+        assertEquals(Color(0xFF818CF8), UserPloCareColors.FilterStage3)
+        assertEquals(Color(0xFFFBBF24), UserPloCareColors.FilterStage4)
+        assertEquals(Color(0xFFF472B6), UserPloCareColors.FilterStage5)
         assertEquals(Color(0xFF070B14), UserPloCareColors.BgDeep)
     }
 
