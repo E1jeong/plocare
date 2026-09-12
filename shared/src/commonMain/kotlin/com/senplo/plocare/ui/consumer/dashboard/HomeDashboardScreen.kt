@@ -119,7 +119,7 @@ fun HomeDashboardScreen(
             AiBriefingBanner(snapshot = snapshot)
 
             Spacer(modifier = Modifier.height(12.dp))
-            FilterCylinderGrid(
+            FilterUsageDonut(
                 filters = snapshot.filters,
                 onSelfReplace = { pendingSelfReplace = it },
                 onRequestReplacement = { onRequestReplacement(listOf(it.id)) },
