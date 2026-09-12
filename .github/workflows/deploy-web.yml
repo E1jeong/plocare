@@ -40,7 +40,7 @@ jobs:
       - name: Assemble Pages site
         run: |
           mkdir -p build/pages/demo
-          cp docs/*.html docs/favicon.ico docs/favicon.png docs/apple-touch-icon.png build/pages/
+          cp docs/*.html docs/favicon.ico docs/favicon.png docs/favicon-16.png docs/favicon.svg docs/apple-touch-icon.png build/pages/
           cp -R webApp/build/dist/wasmJs/productionExecutable/. build/pages/demo/
 
       - name: Upload Pages artifact
