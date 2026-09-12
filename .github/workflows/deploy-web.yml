@@ -33,7 +33,9 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build web demo
-        run: ./gradlew :webApp:wasmJsBrowserDistribution --no-daemon --max-workers=1
+        run: |
+          chmod +x gradlew
+          ./gradlew :webApp:wasmJsBrowserDistribution --no-daemon --max-workers=1
 
       - name: Assemble Pages site
         run: |
