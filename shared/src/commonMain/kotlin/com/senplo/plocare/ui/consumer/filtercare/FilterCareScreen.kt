@@ -18,7 +18,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,33 +25,22 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.senplo.plocare.domain.filter.DashboardFixtures
+import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.FilterColorLevel
 import com.senplo.plocare.domain.filter.FilterSnapshot
-import com.senplo.plocare.domain.filter.buildDashboardSnapshot
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
-import kotlin.time.Clock
 
 @Composable
 fun FilterCareScreen(
+    snapshot: DashboardSnapshot,
     preselectedFilterIds: List<String>,
     onBookVisit: (List<String>) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
-    val snapshot = remember {
-        val now = Clock.System.now()
-        val timeZone = TimeZone.currentSystemDefault()
-        buildDashboardSnapshot(
-            device = DashboardFixtures.kitchenPurifier(now.toLocalDateTime(timeZone).date, now),
-            now = now,
-            timeZone = timeZone,
-        )
-    }
     val attentionFilters = snapshot.filters.filter {
         if (preselectedFilterIds.isEmpty()) it.showReplacementRequest else it.id in preselectedFilterIds
     }
@@ -65,10 +53,10 @@ fun FilterCareScreen(
     ) {
         ConsumerScreenHeader(
             title = "필터 관리·설정",
-            subtitle = "${snapshot.device.nickname} · Cuckoo 4단계",
+            subtitle = "${snapshot.device.nickname} · ${snapshot.filters.size}단계",
         )
         Spacer(Modifier.height(18.dp))
-        DeviceSetupCard()
+        DeviceSetupCard(onOpenSettings = onOpenSettings)
         Spacer(Modifier.height(22.dp))
         ConsumerSectionTitle(
             title = "관리가 필요한 필터",
@@ -119,18 +107,18 @@ fun FilterCareScreen(
 }
 
 @Composable
-private fun DeviceSetupCard() {
+private fun DeviceSetupCard(onOpenSettings: () -> Unit) {
     ConsumerCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("⚙", fontSize = 22.sp)
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
                 Text("정수기 환경 및 보정", color = PloCareColor.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(3.dp))
-                Text("CP-IN900 · Wi-Fi 연결됨", color = PloCareColor.StatusGood, fontSize = 11.sp)
+                Text("설정 위저드 · 1분 유량 보정", color = PloCareColor.StatusGood, fontSize = 11.sp)
             }
         }
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
             Text("정수기 설정 및 1분 보정  ›", color = PloCareColor.AquaTeal, fontSize = 12.sp)
         }
     }

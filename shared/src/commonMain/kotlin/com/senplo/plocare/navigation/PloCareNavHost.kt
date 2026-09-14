@@ -7,10 +7,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.senplo.plocare.ui.login.LoginScreen
 import com.senplo.plocare.ui.login.PartnerSignupScreen
+import com.senplo.plocare.ui.settings.SettingsWizardScreen
 import com.senplo.plocare.ui.splash.SplashScreen
 import com.senplo.plocare.ui.theme.AppAudience
+import com.senplo.plocare.ui.theme.PloCareTheme
 
 @Composable
 fun PloCareNavHost(
@@ -83,6 +86,19 @@ fun PloCareNavHost(
 
         consumerGraph(navController)
         partnerGraph(navController)
+
+        composable<Route.DeviceSettings> { entry ->
+            val route = entry.toRoute<Route.DeviceSettings>()
+            val audience = runCatching { AppAudience.valueOf(route.audience) }
+                .getOrDefault(AppAudience.USER)
+            PloCareTheme(audience = audience) {
+                SettingsWizardScreen(
+                    context = route,
+                    onBack = { navController.popBackStack() },
+                    onFinished = { navController.popBackStack() },
+                )
+            }
+        }
     }
 }
 

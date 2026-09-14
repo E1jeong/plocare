@@ -25,17 +25,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
+import com.senplo.plocare.domain.filter.PurifierDevice
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
 import kotlin.math.floor
+import kotlin.math.round
 
 private val dailyUsage = listOf(3.8f, 4.5f, 4.1f, 5.2f, 3.6f, 4.9f, 4.4f, 5.6f, 3.9f, 4.7f, 4.2f, 5.1f, 4.3f, 4.8f)
 
+private fun groupedInt(value: Int): String {
+    val sign = if (value < 0) "-" else ""
+    val digits = kotlin.math.abs(value).toString()
+    return sign + digits.reversed().chunked(3).joinToString(",").reversed()
+}
+
 @Composable
-fun WaterReportScreen() {
-    val lifetimeLiters = 4_820
+fun WaterReportScreen(device: PurifierDevice) {
+    val lifetimeLiters = round(device.totalCumulativeL).toInt()
     val savedBottles = floor(lifetimeLiters / 2.0).toInt()
 
     Column(
@@ -46,14 +54,14 @@ fun WaterReportScreen() {
     ) {
         ConsumerScreenHeader(
             title = "물 사용 리포트",
-            subtitle = "우리 집 사용 습관과 정수 생활의 가치를 확인하세요.",
+            subtitle = "${device.nickname}의 사용 습관과 정수 생활의 가치를 확인하세요.",
         )
         Spacer(Modifier.height(18.dp))
         ConsumerCard(modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 Metric("오늘", "4.8 L", Modifier.weight(1f), highlight = true)
                 Metric("30일 누적", "142 L", Modifier.weight(1f))
-                Metric("전체 누적", "4,820 L", Modifier.weight(1f))
+                Metric("전체 누적", "${groupedInt(lifetimeLiters)} L", Modifier.weight(1f))
             }
         }
 

@@ -56,6 +56,7 @@ private enum class WorkspaceAction(
 fun CustomerWorkspaceScreen(
     customerId: String,
     onBack: () -> Unit,
+    onOpenSettings: () -> Unit = {},
 ) {
     val visit = remember(customerId) { findPartnerVisit(customerId) }
     var selectedAction by remember { mutableStateOf<WorkspaceAction?>(null) }
@@ -108,7 +109,10 @@ fun CustomerWorkspaceScreen(
             Text("현장 작업", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
             WorkspaceAction.entries.forEach { action ->
-                WorkspaceCard(onClick = { selectedAction = action }) {
+                WorkspaceCard(onClick = {
+                    if (action == WorkspaceAction.SETTINGS) onOpenSettings()
+                    else selectedAction = action
+                }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(action.title, color = PloCareColor.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)

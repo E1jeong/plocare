@@ -6,6 +6,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.senplo.plocare.domain.filter.DashboardFixtures
 import com.senplo.plocare.ui.partner.CustomerWorkspaceScreen
 import com.senplo.plocare.ui.partner.PartnerMainScreen
 import com.senplo.plocare.ui.theme.AppAudience
@@ -38,6 +39,16 @@ fun NavGraphBuilder.partnerGraph(navController: NavHostController) {
         CustomerWorkspaceScreen(
             customerId = route.customerId,
             onBack = { navController.popBackStack() },
+            onOpenSettings = {
+                navController.navigate(
+                    Route.DeviceSettings.partner(
+                        customerId = route.customerId,
+                        deviceId = DashboardFixtures.KITCHEN_ID,
+                    ),
+                ) {
+                    launchSingleTop = true
+                }
+            },
         )
     }
 }

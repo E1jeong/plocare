@@ -41,38 +41,31 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.senplo.plocare.domain.filter.DashboardFixtures
 import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.FilterSnapshot
 import com.senplo.plocare.domain.filter.ForecastStage
 import com.senplo.plocare.domain.filter.PurifierDevice
-import com.senplo.plocare.domain.filter.buildDashboardSnapshot
-import com.senplo.plocare.domain.filter.withSelfReplaced
-import com.senplo.plocare.domain.filter.withTelemetryAt
 import com.senplo.plocare.ui.theme.PloCareColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlin.time.Clock
+import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeDashboardScreen(
+    devices: List<PurifierDevice>,
+    snapshot: DashboardSnapshot,
+    now: Instant,
+    onSelectDevice: (String) -> Unit,
+    onReplaceFilter: (String) -> Unit,
+    onRefreshTelemetry: () -> Unit,
     onRequestReplacement: (filterIds: List<String>) -> Unit,
     onOpenDeviceSettings: () -> Unit,
 ) {
-    val timeZone = remember { TimeZone.currentSystemDefault() }
     val scope = rememberCoroutineScope()
-    var now by remember { mutableStateOf(Clock.System.now()) }
-    var devices by remember { mutableStateOf(DashboardFixtures.devices(now, timeZone)) }
-    var selectedId by remember { mutableStateOf(devices.first().id) }
+    val selected = snapshot.device
     var isRefreshing by remember { mutableStateOf(false) }
     var pendingSelfReplace by remember { mutableStateOf<FilterSnapshot?>(null) }
-
-    val selected = devices.first { it.id == selectedId }
-    val snapshot = remember(selected, now) {
-        buildDashboardSnapshot(selected, now, timeZone)
-    }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -80,11 +73,7 @@ fun HomeDashboardScreen(
             scope.launch {
                 isRefreshing = true
                 delay(350)
-                val refreshedAt = Clock.System.now()
-                now = refreshedAt
-                devices = devices.map { device ->
-                    if (device.id == selectedId) device.withTelemetryAt(refreshedAt) else device
-                }
+                onRefreshTelemetry()
                 isRefreshing = false
             }
         },
@@ -100,7 +89,7 @@ fun HomeDashboardScreen(
                 devices = devices,
                 selected = selected,
                 syncText = syncLabel(now - selected.lastTelemetryAt),
-                onSelectDevice = { selectedId = it },
+                onSelectDevice = onSelectDevice,
                 onOpenNotifications = {},
                 onOpenDeviceSettings = onOpenDeviceSettings,
             )
@@ -180,9 +169,7 @@ fun HomeDashboardScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        devices = devices.map { device ->
-                            if (device.id == selectedId) device.withSelfReplaced(filter.id) else device
-                        }
+                        onReplaceFilter(filter.id)
                         pendingSelfReplace = null
                     },
                 ) {

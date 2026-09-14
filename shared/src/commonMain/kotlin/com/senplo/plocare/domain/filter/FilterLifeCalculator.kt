@@ -10,6 +10,13 @@ object FilterLifeCalculator {
     const val COLD_START_DAYS = 60
     const val SENSOR_STALE_HOURS = 24
     const val REPLACE_SOON_EXHAUSTION_PERCENT = 90.0
+    const val DEFAULT_KV_L_PER_SEC = 0.015
+    const val KV_PHYSICAL_MIN = 0.010
+    const val KV_PHYSICAL_MAX = 0.025
+    const val KV_CALIBRATION_MIN = 0.008
+    const val KV_CALIBRATION_MAX = 0.030
+    const val FLOW_TEST_MIN_ML = 500.0
+    const val FLOW_TEST_MAX_ML = 2_000.0
 
     fun dailyAverage(recentDailyUsageL: List<Double>): Double {
         if (recentDailyUsageL.isEmpty()) return MIN_DAILY_AVG_L
@@ -76,5 +83,24 @@ object FilterLifeCalculator {
             .values
             .map { indices -> indices.map { remainingDaysById[it].first } }
             .filter { it.size >= 2 }
+    }
+
+    fun predictedOneMinuteMl(kv: Double): Double = 60.0 * kv * 1000.0
+
+    fun calibrateKv(currentKv: Double, measuredMl: Double): Double {
+        val predicted = predictedOneMinuteMl(currentKv)
+        if (predicted <= 0.0) return currentKv.coerceIn(KV_CALIBRATION_MIN, KV_CALIBRATION_MAX)
+        return (currentKv * (measuredMl / predicted)).coerceIn(KV_CALIBRATION_MIN, KV_CALIBRATION_MAX)
+    }
+
+    /** Fixture preview until the specified 2D Kv lookup table exists. */
+    fun previewKv(pipeSize: String, pressureKgf: Double): Double {
+        val pipeFactor = when (pipeSize) {
+            "3/8\"" -> 1.08
+            "1/2\"" -> 1.16
+            else -> 1.0
+        }
+        val pressureFactor = (pressureKgf / 2.0).coerceIn(0.7, 1.3)
+        return (DEFAULT_KV_L_PER_SEC * pipeFactor * pressureFactor).coerceIn(KV_PHYSICAL_MIN, KV_PHYSICAL_MAX)
     }
 }

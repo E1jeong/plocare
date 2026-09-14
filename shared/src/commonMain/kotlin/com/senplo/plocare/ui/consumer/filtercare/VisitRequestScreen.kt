@@ -37,9 +37,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.senplo.plocare.domain.filter.DashboardFixtures
+import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.FilterSnapshot
-import com.senplo.plocare.domain.filter.buildDashboardSnapshot
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
@@ -50,19 +49,13 @@ import kotlin.time.Clock
 
 @Composable
 fun VisitRequestScreen(
+    snapshot: DashboardSnapshot,
     preselectedFilterIds: List<String>,
     onBack: () -> Unit,
     onSubmitted: () -> Unit,
 ) {
     val timeZone = remember { TimeZone.currentSystemDefault() }
     val today = remember { Clock.System.now().toLocalDateTime(timeZone).date }
-    val snapshot = remember {
-        buildDashboardSnapshot(
-            device = DashboardFixtures.kitchenPurifier(today, Clock.System.now()),
-            now = Clock.System.now(),
-            timeZone = timeZone,
-        )
-    }
     val dateOptions = remember(today) { visitDateOptions(today) }
     val initialSelected = remember(preselectedFilterIds, snapshot.filters) {
         when {

@@ -51,6 +51,16 @@ class FilterLifeCalculatorTest {
         )
         assertTrue(clusters.isEmpty())
     }
+
+    @Test
+    fun kvPreviewAndCalibrationFollowSpec() {
+        assertEquals(900.0, FilterLifeCalculator.predictedOneMinuteMl(0.015), 0.01)
+        assertEquals(0.015, FilterLifeCalculator.previewKv("1/4\"", 2.0), 0.0001)
+        val calibrated = FilterLifeCalculator.calibrateKv(0.015, 1_200.0)
+        assertEquals(0.02, calibrated, 0.0001)
+        assertEquals(0.030, FilterLifeCalculator.calibrateKv(0.015, 10_000.0), 0.0001)
+        assertEquals(0.008, FilterLifeCalculator.calibrateKv(0.015, 10.0), 0.0001)
+    }
 }
 
 class DashboardSnapshotTest {

@@ -27,6 +27,31 @@ sealed interface Route {
     data class CustomerWorkspace(
         val customerId: String,
     ) : Route
+
+    @Serializable
+    data class DeviceSettings(
+        val audience: String,
+        val deviceId: String,
+        val customerId: String = "",
+    ) : Route {
+        val isPartnerContext: Boolean get() = audience == PARTNER_SETTINGS_AUDIENCE
+
+        companion object {
+            const val CONSUMER_SETTINGS_AUDIENCE = "USER"
+            const val PARTNER_SETTINGS_AUDIENCE = "PARTNER"
+
+            fun consumer(deviceId: String) = DeviceSettings(
+                audience = CONSUMER_SETTINGS_AUDIENCE,
+                deviceId = deviceId,
+            )
+
+            fun partner(customerId: String, deviceId: String) = DeviceSettings(
+                audience = PARTNER_SETTINGS_AUDIENCE,
+                deviceId = deviceId,
+                customerId = customerId,
+            )
+        }
+    }
 }
 
 enum class ConsumerTabItem(

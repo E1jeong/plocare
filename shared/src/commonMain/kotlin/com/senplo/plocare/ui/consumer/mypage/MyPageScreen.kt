@@ -31,13 +31,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
+import kotlin.time.Instant
 
 @Composable
-fun MyPageScreen() {
+fun MyPageScreen(
+    snapshot: DashboardSnapshot,
+    now: Instant,
+    onOpenSettings: () -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,9 +62,9 @@ fun MyPageScreen() {
         Spacer(Modifier.height(22.dp))
         ConsumerSectionTitle(title = "내 정수기")
         Spacer(Modifier.height(10.dp))
-        DeviceCard()
+        DeviceCard(snapshot = snapshot, onOpenSettings = onOpenSettings)
         Spacer(Modifier.height(10.dp))
-        HardwareStatusCard()
+        HardwareStatusCard(snapshot = snapshot, now = now)
 
         Spacer(Modifier.height(22.dp))
         ConsumerSectionTitle(title = "고객 지원 및 약관")
@@ -139,35 +145,45 @@ private fun NotificationRow(title: String, description: String, checked: Boolean
 }
 
 @Composable
-private fun DeviceCard() {
+private fun DeviceCard(snapshot: DashboardSnapshot, onOpenSettings: () -> Unit) {
+    val device = snapshot.device
     ConsumerCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("우리 집 주방 정수기", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(device.nickname, color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(3.dp))
-                Text("Cuckoo CP-IN900 · 4단계", color = PloCareColor.TextSecondary, fontSize = 12.sp)
+                Text("${device.filters.size}단계 · 가구 ${device.householdSize}인", color = PloCareColor.TextSecondary, fontSize = 12.sp)
             }
             Text("닉네임 편집", color = PloCareColor.AquaTeal, fontSize = 11.sp)
         }
         Spacer(Modifier.height(12.dp))
         HorizontalDivider(color = PloCareColor.SurfaceBorder)
         Spacer(Modifier.height(12.dp))
-        InfoRow("기기 일련번호", "PC-A12-0284")
-        InfoRow("센서 설치일", "2026.05.13")
-        OutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        InfoRow("기기 ID", device.id)
+        InfoRow("센서 설치일", device.installedOn.toString())
+        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Text("정수기 설정 열기  ›", color = PloCareColor.AquaTeal, fontSize = 12.sp)
         }
     }
 }
 
 @Composable
-private fun HardwareStatusCard() {
+private fun HardwareStatusCard(snapshot: DashboardSnapshot, now: Instant) {
+    val elapsed = now - snapshot.device.lastTelemetryAt
+    val minutes = elapsed.inWholeMinutes
+    val hours = elapsed.inWholeHours
+    val syncText = when {
+        snapshot.sensorStale || hours >= 24L -> "24시간 이상 미수신"
+        minutes < 1L -> "방금 전 동기화"
+        minutes < 60L -> "${minutes}분 전 동기화"
+        else -> "${hours}시간 전 동기화"
+    }
     ConsumerCard(modifier = Modifier.fillMaxWidth()) {
         Text("하드웨어 상태", color = PloCareColor.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(12.dp))
-        StatusRow("센서 전원", "정상 · 95%", true)
-        StatusRow("Wi-Fi", "Home_5G · 신호 좋음", true)
-        StatusRow("마지막 데이터", "2분 전 동기화", true)
+        StatusRow("센서 전원", if (snapshot.sensorStale) "확인 필요" else "정상", !snapshot.sensorStale)
+        StatusRow("통신", if (snapshot.sensorStale) "미수신" else "연결됨", !snapshot.sensorStale)
+        StatusRow("마지막 데이터", syncText, !snapshot.sensorStale)
     }
 }
 

@@ -15,12 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.senplo.plocare.domain.filter.DashboardSnapshot
+import com.senplo.plocare.domain.filter.PurifierDevice
 import com.senplo.plocare.navigation.ConsumerTabItem
 import com.senplo.plocare.ui.consumer.dashboard.HomeDashboardScreen
 import com.senplo.plocare.ui.consumer.filtercare.FilterCareScreen
 import com.senplo.plocare.ui.consumer.mypage.MyPageScreen
 import com.senplo.plocare.ui.consumer.waterreport.WaterReportScreen
 import com.senplo.plocare.ui.theme.PloCareColor
+import kotlin.time.Instant
 import org.jetbrains.compose.resources.painterResource
 import plocare.shared.generated.resources.Res
 import plocare.shared.generated.resources.nav_filter_care
@@ -34,7 +37,14 @@ fun ConsumerMainScreen(
     onTabChange: (ConsumerTabItem) -> Unit,
     filterCareTargetIds: List<String>,
     onFilterCareTargetIdsChange: (List<String>) -> Unit,
+    snapshot: DashboardSnapshot,
+    devices: List<PurifierDevice>,
+    now: Instant,
+    onSelectDevice: (String) -> Unit,
+    onReplaceFilter: (String) -> Unit,
+    onRefreshTelemetry: () -> Unit,
     onBookVisit: (List<String>) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
 
     Scaffold(
@@ -77,18 +87,30 @@ fun ConsumerMainScreen(
         ) {
             when (currentTab) {
                 ConsumerTabItem.DASHBOARD -> HomeDashboardScreen(
+                    devices = devices,
+                    snapshot = snapshot,
+                    now = now,
+                    onSelectDevice = onSelectDevice,
+                    onReplaceFilter = onReplaceFilter,
+                    onRefreshTelemetry = onRefreshTelemetry,
                     onRequestReplacement = { filterIds ->
                         onFilterCareTargetIdsChange(filterIds)
                         onTabChange(ConsumerTabItem.FILTER_CARE)
                     },
-                    onOpenDeviceSettings = { onTabChange(ConsumerTabItem.FILTER_CARE) },
+                    onOpenDeviceSettings = onOpenSettings,
                 )
                 ConsumerTabItem.FILTER_CARE -> FilterCareScreen(
+                    snapshot = snapshot,
                     preselectedFilterIds = filterCareTargetIds,
                     onBookVisit = onBookVisit,
+                    onOpenSettings = onOpenSettings,
                 )
-                ConsumerTabItem.WATER_REPORT -> WaterReportScreen()
-                ConsumerTabItem.MY_PAGE -> MyPageScreen()
+                ConsumerTabItem.WATER_REPORT -> WaterReportScreen(device = snapshot.device)
+                ConsumerTabItem.MY_PAGE -> MyPageScreen(
+                    snapshot = snapshot,
+                    now = now,
+                    onOpenSettings = onOpenSettings,
+                )
             }
         }
     }
