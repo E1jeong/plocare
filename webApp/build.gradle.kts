@@ -17,6 +17,7 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(project(":shared"))
             implementation(libs.compose.ui)
+            implementation(libs.androidx.navigation.compose)
         }
     }
 }
