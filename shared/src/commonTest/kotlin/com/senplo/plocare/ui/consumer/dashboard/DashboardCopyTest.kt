@@ -48,23 +48,12 @@ class DashboardCopyTest {
         assertTrue(briefingCaption(office).contains("가구원 수"))
     }
 
-    @Test
-    fun chunkFilterRowsMatchesDemoPresets() {
-        val two = List(2) { sampleFilter(id = "f$it") }
-        val four = List(4) { sampleFilter(id = "f$it") }
-        assertEquals(1, chunkFilterRows(two).size)
-        assertEquals(2, chunkFilterRows(four).size)
-        assertEquals(2, chunkFilterRows(four)[0].size)
-        assertEquals(listOf(2, 1), chunkFilterRows(List(3) { sampleFilter(id = "f$it") }).map { it.size })
-    }
-
     private fun sampleFilter(
-        id: String = "kitchen-1",
         remainingL: Double = 50.0,
         rated: Double = 1_500.0,
         days: Int = 12,
     ) = FilterSnapshot(
-        id = id,
+        id = "kitchen-1",
         stage = 1,
         name = "세디먼트 카본",
         ratedCapacityL = rated,

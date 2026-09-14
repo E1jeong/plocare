@@ -37,3 +37,13 @@ enum class ConsumerTabItem(
     WATER_REPORT("물 사용 리포트"),
     MY_PAGE("마이페이지")
 }
+
+enum class PartnerTab(
+    val title: String
+) {
+    WORK("업무"),
+    VISITS("방문 관리"),
+    CUSTOMERS("고객 조회"),
+    INVENTORY("재고 관리"),
+    MY("마이페이지")
+}

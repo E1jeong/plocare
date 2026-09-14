@@ -8,7 +8,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.senplo.plocare.ui.partner.CustomerWorkspaceScreen
 import com.senplo.plocare.ui.partner.PartnerMainScreen
-import com.senplo.plocare.ui.partner.PartnerTab
 import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareTheme
 
