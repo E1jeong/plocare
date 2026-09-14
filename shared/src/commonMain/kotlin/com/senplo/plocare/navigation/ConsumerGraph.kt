@@ -13,22 +13,31 @@ import com.senplo.plocare.ui.consumer.filtercare.encodeVisitFilterIds
 import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareTheme
 
-internal const val CONSUMER_OPEN_TAB_KEY = "consumerOpenTab"
+internal const val CONSUMER_TAB_KEY = "consumerTab"
+internal const val CONSUMER_FILTER_IDS_KEY = "consumerFilterIds"
 
 fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
     composable<Route.ConsumerMain> { entry ->
-        val pendingTabName by entry.savedStateHandle
-            .getStateFlow(CONSUMER_OPEN_TAB_KEY, "")
+        val tabName by entry.savedStateHandle
+            .getStateFlow(CONSUMER_TAB_KEY, ConsumerTabItem.DASHBOARD.name)
             .collectAsState()
-        val pendingTab = pendingTabName.takeIf { it.isNotEmpty() }?.let {
-            runCatching { ConsumerTabItem.valueOf(it) }.getOrNull()
-        }
+        val filterIdsRaw by entry.savedStateHandle
+            .getStateFlow(CONSUMER_FILTER_IDS_KEY, "")
+            .collectAsState()
+        val currentTab = runCatching { ConsumerTabItem.valueOf(tabName) }
+            .getOrDefault(ConsumerTabItem.DASHBOARD)
         PloCareTheme(audience = AppAudience.USER) {
             ConsumerMainScreen(
-                pendingTab = pendingTab,
-                onPendingTabConsumed = { entry.savedStateHandle[CONSUMER_OPEN_TAB_KEY] = "" },
+                currentTab = currentTab,
+                onTabChange = { entry.savedStateHandle[CONSUMER_TAB_KEY] = it.name },
+                filterCareTargetIds = decodeVisitFilterIds(filterIdsRaw),
+                onFilterCareTargetIdsChange = {
+                    entry.savedStateHandle[CONSUMER_FILTER_IDS_KEY] = encodeVisitFilterIds(it)
+                },
                 onBookVisit = { filterIds ->
-                    navController.navigate(Route.VisitRequest(encodeVisitFilterIds(filterIds)))
+                    navController.navigate(Route.VisitRequest(encodeVisitFilterIds(filterIds))) {
+                        launchSingleTop = true
+                    }
                 },
             )
         }
@@ -42,7 +51,7 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
             onSubmitted = {
                 navController.previousBackStackEntry
                     ?.savedStateHandle
-                    ?.set(CONSUMER_OPEN_TAB_KEY, ConsumerTabItem.DASHBOARD.name)
+                    ?.set(CONSUMER_TAB_KEY, ConsumerTabItem.DASHBOARD.name)
                 navController.popBackStack()
             },
         )

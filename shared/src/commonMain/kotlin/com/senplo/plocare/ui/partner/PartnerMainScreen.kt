@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,31 +61,13 @@ import plocare.shared.generated.resources.nav_partner_customers
 import plocare.shared.generated.resources.nav_partner_inventory
 import plocare.shared.generated.resources.nav_partner_visits
 
-private enum class PartnerTab(val title: String) {
+enum class PartnerTab(val title: String) {
     WORK("업무"), VISITS("방문 관리"), CUSTOMERS("고객 조회"), INVENTORY("재고 관리"), MY("마이페이지"),
 }
 
 private enum class VisitView(val title: String) { MAP("지도"), LIST("목록") }
 
-private data class VisitFixture(
-    val time: String,
-    val customer: String,
-    val address: String,
-    val filters: String,
-    val exhaustion: String,
-    val status: String,
-    val urgent: Boolean = false,
-    val completed: Boolean = false,
-)
-
 private data class StockFixture(val name: String, val required: Int, val loaded: Int)
-
-private val visits = listOf(
-    VisitFixture("10:00", "김*정 · C-1024", "서울 성동구 성수일로 10", "세디먼트 · 프리카본", "최고 소진율 112%", "긴급", urgent = true),
-    VisitFixture("14:00", "박*현 · C-2048", "서울 광진구 아차산로 42", "포스트카본", "소진율 88%", "예정"),
-    VisitFixture("16:00", "이*수 · C-3072", "서울 성동구 왕십리로 18", "세디먼트", "소진율 91%", "예정"),
-    VisitFixture("완료", "최*아 · C-4096", "서울 광진구 능동로 7", "RO 멤브레인", "교체 완료", "완료", completed = true),
-)
 
 private val stocks = listOf(
     StockFixture("1단계 세디먼트", 6, 8),
@@ -92,8 +77,11 @@ private val stocks = listOf(
 )
 
 @Composable
-fun PartnerMainScreen() {
-    var currentTab by remember { mutableStateOf(PartnerTab.WORK) }
+fun PartnerMainScreen(
+    currentTab: PartnerTab = PartnerTab.WORK,
+    onTabChange: (PartnerTab) -> Unit = {},
+    onOpenCustomer: (String) -> Unit = {},
+) {
 
     Scaffold(
         containerColor = PloCareColor.BrandNavy,
@@ -103,7 +91,7 @@ fun PartnerMainScreen() {
                     val selected = currentTab == tab
                     NavigationBarItem(
                         selected = selected,
-                        onClick = { currentTab = tab },
+                        onClick = { onTabChange(tab) },
                         icon = {
                             Icon(
                                 painter = painterResource(tab.iconResource()),
@@ -133,9 +121,12 @@ fun PartnerMainScreen() {
                 .padding(innerPadding),
         ) {
             when (currentTab) {
-                PartnerTab.WORK -> WorkDashboardTab(onInventoryClick = { currentTab = PartnerTab.INVENTORY })
-                PartnerTab.VISITS -> VisitManagementTab()
-                PartnerTab.CUSTOMERS -> CustomerManagementTab()
+                PartnerTab.WORK -> WorkDashboardTab(
+                    onInventoryClick = { onTabChange(PartnerTab.INVENTORY) },
+                    onOpenCustomer = onOpenCustomer,
+                )
+                PartnerTab.VISITS -> VisitManagementTab(onOpenCustomer = onOpenCustomer)
+                PartnerTab.CUSTOMERS -> CustomerManagementTab(onOpenCustomer = onOpenCustomer)
                 PartnerTab.INVENTORY -> InventoryManagementTab()
                 PartnerTab.MY -> PartnerMyPageTab()
             }
@@ -152,7 +143,11 @@ private fun PartnerTab.iconResource() = when (this) {
 }
 
 @Composable
-private fun WorkDashboardTab(onInventoryClick: () -> Unit) {
+private fun WorkDashboardTab(
+    onInventoryClick: () -> Unit,
+    onOpenCustomer: (String) -> Unit,
+) {
+    val nextVisit = partnerVisits.first { !it.completed }
     PartnerPage("좋은 아침이에요, 김파트너님", "담당 지역 · 서울 성동구 / 광진구") {
         SectionTitle("오늘의 업무 요약", "9월 10일 목요일")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -162,6 +157,15 @@ private fun WorkDashboardTab(onInventoryClick: () -> Unit) {
         }
         Spacer(Modifier.height(10.dp))
         InfoStrip("예상 이동 + 작업 시간", "4시간 10분")
+
+        SectionTitle("다음 방문", "긴급 고객부터 현장 화면에 들어갑니다")
+        PartnerCard(onClick = { onOpenCustomer(nextVisit.customerId) }) {
+            Text(nextVisit.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(4.dp))
+            Text("${nextVisit.time} · ${nextVisit.address}", color = PloCareColor.TextSecondary, fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("현장 화면 열기  ›", color = PloCareColor.AquaTeal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
 
         SectionTitle("추천 방문 경로", "긴급도와 이동 시간을 반영했어요")
         PartnerCard {
@@ -191,7 +195,7 @@ private fun WorkDashboardTab(onInventoryClick: () -> Unit) {
 }
 
 @Composable
-private fun VisitManagementTab() {
+private fun VisitManagementTab(onOpenCustomer: (String) -> Unit) {
     var selectedView by remember { mutableStateOf(VisitView.MAP) }
 
     PartnerPage("방문 관리", "오늘 8건 · 긴급 2건 · 완료 1건") {
@@ -207,18 +211,20 @@ private fun VisitManagementTab() {
             InfoStrip("추천 순서", "길게 눌러 방문 순서를 조정할 수 있어요")
         }
         SectionTitle(if (selectedView == VisitView.MAP) "다음 방문" else "오늘의 방문 목록", "추천 경로 순")
-        visits.forEach { visit ->
-            VisitCard(visit)
+        partnerVisits.forEach { visit ->
+            VisitCard(visit, onOpenCustomer = { onOpenCustomer(visit.customerId) })
             Spacer(Modifier.height(10.dp))
         }
     }
 }
 
 @Composable
-private fun CustomerManagementTab() {
+private fun CustomerManagementTab(onOpenCustomer: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
-    val visibleCustomers = visits.filter {
-        !it.completed && (query.isBlank() || it.customer.contains(query, ignoreCase = true))
+    val visibleCustomers = searchPartnerVisits(query)
+
+    fun openExactOrKeepList() {
+        findPartnerVisit(query)?.let { onOpenCustomer(it.customerId) }
     }
 
     PartnerPage("고객 조회", "고객 번호로 검색하거나 담당 고객을 확인하세요") {
@@ -229,7 +235,16 @@ private fun CustomerManagementTab() {
             singleLine = true,
             label = { Text("고객 번호") },
             placeholder = { Text("예: C-1024") },
-            trailingIcon = { Text("검색", color = PloCareColor.AquaTeal, fontWeight = FontWeight.Bold) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { openExactOrKeepList() }),
+            trailingIcon = {
+                Text(
+                    "검색",
+                    color = PloCareColor.AquaTeal,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable { openExactOrKeepList() },
+                )
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = PloCareColor.TextPrimary,
                 unfocusedTextColor = PloCareColor.TextPrimary,
@@ -242,13 +257,13 @@ private fun CustomerManagementTab() {
             ),
         )
         SectionTitle("교체 긴급 고객", "필터 소진율 100% 이상")
-        CustomerCard(visits.first())
+        CustomerCard(partnerVisits.first(), onOpenCustomer = { onOpenCustomer(partnerVisits.first().customerId) })
         SectionTitle("담당 고객", "긴급도 높은 순 · ${visibleCustomers.size}명 표시")
         if (visibleCustomers.isEmpty()) {
             EmptySearchResult(query)
         } else {
             visibleCustomers.forEach { customer ->
-                CustomerCard(customer)
+                CustomerCard(customer, onOpenCustomer = { onOpenCustomer(customer.customerId) })
                 Spacer(Modifier.height(10.dp))
             }
         }
@@ -394,11 +409,17 @@ private fun RowScope.RouteConnector(duration: String) {
 }
 
 @Composable
-private fun SmallAction(text: String, modifier: Modifier = Modifier, secondary: Boolean = false) {
+private fun SmallAction(
+    text: String,
+    modifier: Modifier = Modifier,
+    secondary: Boolean = false,
+    onClick: (() -> Unit)? = null,
+) {
     Box(
         modifier.clip(RoundedCornerShape(10.dp))
             .background(if (secondary) PloCareColor.SurfaceDark else PloCareColor.DeepBlue)
             .border(1.dp, if (secondary) PloCareColor.SurfaceBorder else PloCareColor.DeepBlue, RoundedCornerShape(10.dp))
+            .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick))
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -480,8 +501,8 @@ private fun LegendItem(label: String, color: Color) {
 }
 
 @Composable
-private fun VisitCard(visit: VisitFixture) {
-    PartnerCard {
+private fun VisitCard(visit: PartnerVisitFixture, onOpenCustomer: () -> Unit) {
+    PartnerCard(onClick = onOpenCustomer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(visit.time, color = if (visit.urgent) PloCareColor.StatusAlert else PloCareColor.VividCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -489,9 +510,9 @@ private fun VisitCard(visit: VisitFixture) {
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(visit.customer, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
+                Text(visit.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
                 Text(visit.address, color = PloCareColor.TextSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${visit.filters} · ${visit.exhaustion}", color = if (visit.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
+                Text("${visit.filtersLabel} · ${visit.exhaustion}", color = if (visit.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
             }
             Text("›", color = PloCareColor.AquaTeal, fontSize = 22.sp)
         }
@@ -499,7 +520,7 @@ private fun VisitCard(visit: VisitFixture) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SmallAction("카카오내비", Modifier.weight(1f), secondary = true)
-                SmallAction("방문 시작", Modifier.weight(1f))
+                SmallAction("방문 시작", Modifier.weight(1f), onClick = onOpenCustomer)
             }
         }
     }
@@ -513,12 +534,12 @@ private fun StatusPill(text: String, color: Color) {
 }
 
 @Composable
-private fun CustomerCard(customer: VisitFixture) {
-    PartnerCard {
+private fun CustomerCard(customer: PartnerVisitFixture, onOpenCustomer: () -> Unit) {
+    PartnerCard(onClick = onOpenCustomer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(customer.customer, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
+                    Text(customer.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
                     if (customer.urgent) {
                         Spacer(Modifier.width(7.dp))
                         StatusPill("교체 긴급", PloCareColor.StatusAlert)
@@ -526,7 +547,7 @@ private fun CustomerCard(customer: VisitFixture) {
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(customer.address, color = PloCareColor.TextSecondary, fontSize = 12.sp)
-                Text("${customer.filters} · ${customer.exhaustion}", color = if (customer.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
+                Text("${customer.filtersLabel} · ${customer.exhaustion}", color = if (customer.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
             }
             Text("현장 화면  ›", color = PloCareColor.AquaTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }

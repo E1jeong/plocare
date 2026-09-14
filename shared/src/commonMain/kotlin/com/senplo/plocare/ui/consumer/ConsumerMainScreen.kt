@@ -11,11 +11,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
@@ -35,19 +30,12 @@ import plocare.shared.generated.resources.nav_water_report
 
 @Composable
 fun ConsumerMainScreen(
-    pendingTab: ConsumerTabItem? = null,
-    onPendingTabConsumed: () -> Unit = {},
+    currentTab: ConsumerTabItem,
+    onTabChange: (ConsumerTabItem) -> Unit,
+    filterCareTargetIds: List<String>,
+    onFilterCareTargetIdsChange: (List<String>) -> Unit,
     onBookVisit: (List<String>) -> Unit = {},
 ) {
-    var currentTab by remember { mutableStateOf(ConsumerTabItem.DASHBOARD) }
-    var filterCareTargetIds by remember { mutableStateOf<List<String>>(emptyList()) }
-
-    LaunchedEffect(pendingTab) {
-        if (pendingTab != null) {
-            currentTab = pendingTab
-            onPendingTabConsumed()
-        }
-    }
 
     Scaffold(
         containerColor = PloCareColor.BrandNavy,
@@ -61,7 +49,7 @@ fun ConsumerMainScreen(
                     val selected = currentTab == tab
                     NavigationBarItem(
                         selected = selected,
-                        onClick = { currentTab = tab },
+                        onClick = { onTabChange(tab) },
                         label = { Text(text = tab.title, fontSize = 10.sp) },
                         icon = {
                             Icon(
@@ -90,10 +78,10 @@ fun ConsumerMainScreen(
             when (currentTab) {
                 ConsumerTabItem.DASHBOARD -> HomeDashboardScreen(
                     onRequestReplacement = { filterIds ->
-                        filterCareTargetIds = filterIds
-                        currentTab = ConsumerTabItem.FILTER_CARE
+                        onFilterCareTargetIdsChange(filterIds)
+                        onTabChange(ConsumerTabItem.FILTER_CARE)
                     },
-                    onOpenDeviceSettings = { currentTab = ConsumerTabItem.FILTER_CARE },
+                    onOpenDeviceSettings = { onTabChange(ConsumerTabItem.FILTER_CARE) },
                 )
                 ConsumerTabItem.FILTER_CARE -> FilterCareScreen(
                     preselectedFilterIds = filterCareTargetIds,

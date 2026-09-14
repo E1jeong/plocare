@@ -22,6 +22,11 @@ sealed interface Route {
 
     @Serializable
     data object PartnerMain : Route
+
+    @Serializable
+    data class CustomerWorkspace(
+        val customerId: String,
+    ) : Route
 }
 
 enum class ConsumerTabItem(
