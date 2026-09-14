@@ -9,11 +9,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.senplo.plocare.ui.login.LoginScreen
 import com.senplo.plocare.ui.login.PartnerSignupScreen
-import com.senplo.plocare.ui.consumer.ConsumerMainScreen
-import com.senplo.plocare.ui.partner.PartnerMainScreen
 import com.senplo.plocare.ui.splash.SplashScreen
 import com.senplo.plocare.ui.theme.AppAudience
-import com.senplo.plocare.ui.theme.PloCareTheme
 
 @Composable
 fun PloCareNavHost(
@@ -65,15 +62,11 @@ fun PloCareNavHost(
                 onAudienceChange = onAudienceChange,
                 onGoogleLoginSuccess = {
                     onAudienceChange(AppAudience.USER)
-                    navController.navigate(Route.ConsumerMain) {
-                        popUpTo<Route.Login> { inclusive = true }
-                    }
+                    navController.navigateKeepingLogin(Route.ConsumerMain)
                 },
                 onPartnerLoginSuccess = {
                     onAudienceChange(AppAudience.PARTNER)
-                    navController.navigate(Route.PartnerMain) {
-                        popUpTo<Route.Login> { inclusive = true }
-                    }
+                    navController.navigateKeepingLogin(Route.PartnerMain)
                 },
                 onPartnerSignupClick = {
                     onAudienceChange(AppAudience.PARTNER)
@@ -88,16 +81,14 @@ fun PloCareNavHost(
             )
         }
 
-        composable<Route.ConsumerMain> {
-            PloCareTheme(audience = AppAudience.USER) {
-                ConsumerMainScreen()
-            }
-        }
+        consumerGraph()
+        partnerGraph()
+    }
+}
 
-        composable<Route.PartnerMain> {
-            PloCareTheme(audience = AppAudience.PARTNER) {
-                PartnerMainScreen()
-            }
-        }
+private inline fun <reified T : Any> NavHostController.navigateKeepingLogin(destination: T) {
+    navigate(destination) {
+        popUpTo<Route.Login> { inclusive = false }
+        launchSingleTop = true
     }
 }
