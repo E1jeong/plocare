@@ -40,7 +40,10 @@ import kotlin.math.roundToInt
 import kotlin.time.Clock
 
 @Composable
-fun FilterCareScreen(preselectedFilterIds: List<String>) {
+fun FilterCareScreen(
+    preselectedFilterIds: List<String>,
+    onBookVisit: (List<String>) -> Unit = {},
+) {
     val snapshot = remember {
         val now = Clock.System.now()
         val timeZone = TimeZone.currentSystemDefault()
@@ -101,6 +104,7 @@ fun FilterCareScreen(preselectedFilterIds: List<String>) {
                 action = "방문 예약",
                 primary = false,
                 modifier = Modifier.weight(1f),
+                onClick = { onBookVisit(attentionFilters.map { it.id }) },
             )
         }
         Spacer(Modifier.height(12.dp))
@@ -178,6 +182,7 @@ private fun ServiceOptionCard(
     action: String,
     primary: Boolean,
     modifier: Modifier,
+    onClick: () -> Unit = {},
 ) {
     ConsumerCard(modifier = modifier.height(190.dp)) {
         Text(emoji, fontSize = 22.sp)
@@ -188,7 +193,7 @@ private fun ServiceOptionCard(
         Text(price, color = PloCareColor.TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         Button(
-            onClick = {},
+            onClick = onClick,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = if (primary) PloCareColor.AquaTeal else PloCareColor.DeepBlue,

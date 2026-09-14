@@ -81,7 +81,7 @@ fun PloCareNavHost(
             )
         }
 
-        consumerGraph()
+        consumerGraph(navController)
         partnerGraph()
     }
 }

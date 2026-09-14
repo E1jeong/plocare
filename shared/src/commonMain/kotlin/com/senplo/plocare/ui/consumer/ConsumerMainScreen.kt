@@ -11,6 +11,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,9 +34,20 @@ import plocare.shared.generated.resources.nav_my_page
 import plocare.shared.generated.resources.nav_water_report
 
 @Composable
-fun ConsumerMainScreen() {
+fun ConsumerMainScreen(
+    pendingTab: ConsumerTabItem? = null,
+    onPendingTabConsumed: () -> Unit = {},
+    onBookVisit: (List<String>) -> Unit = {},
+) {
     var currentTab by remember { mutableStateOf(ConsumerTabItem.DASHBOARD) }
     var filterCareTargetIds by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(pendingTab) {
+        if (pendingTab != null) {
+            currentTab = pendingTab
+            onPendingTabConsumed()
+        }
+    }
 
     Scaffold(
         containerColor = PloCareColor.BrandNavy,
@@ -83,7 +95,10 @@ fun ConsumerMainScreen() {
                     },
                     onOpenDeviceSettings = { currentTab = ConsumerTabItem.FILTER_CARE },
                 )
-                ConsumerTabItem.FILTER_CARE -> FilterCareScreen(filterCareTargetIds)
+                ConsumerTabItem.FILTER_CARE -> FilterCareScreen(
+                    preselectedFilterIds = filterCareTargetIds,
+                    onBookVisit = onBookVisit,
+                )
                 ConsumerTabItem.WATER_REPORT -> WaterReportScreen()
                 ConsumerTabItem.MY_PAGE -> MyPageScreen()
             }

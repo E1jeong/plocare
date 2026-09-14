@@ -16,6 +16,11 @@ sealed interface Route {
     data object ConsumerMain : Route
 
     @Serializable
+    data class VisitRequest(
+        val filterIds: String = "",
+    ) : Route
+
+    @Serializable
     data object PartnerMain : Route
 }
 
