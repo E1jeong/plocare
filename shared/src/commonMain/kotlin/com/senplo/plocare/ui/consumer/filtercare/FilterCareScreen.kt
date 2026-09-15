@@ -39,6 +39,7 @@ fun FilterCareScreen(
     snapshot: DashboardSnapshot,
     preselectedFilterIds: List<String>,
     onBookVisit: (List<String>) -> Unit = {},
+    onOpenPurchase: (List<String>) -> Unit = {},
     onOpenSettings: () -> Unit = {},
 ) {
     val attentionFilters = snapshot.filters.filter {
@@ -83,6 +84,7 @@ fun FilterCareScreen(
                 action = "구매 / 구독",
                 primary = true,
                 modifier = Modifier.weight(1f),
+                onClick = { onOpenPurchase(attentionFilters.map { it.id }) },
             )
             ServiceOptionCard(
                 emoji = "🧑‍🔧",

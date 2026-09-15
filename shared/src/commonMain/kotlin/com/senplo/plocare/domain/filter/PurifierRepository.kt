@@ -14,8 +14,13 @@ class PurifierRepository(
     fun device(id: String): PurifierDevice? = _devices.value.find { it.id == id }
 
     fun replaceFilter(deviceId: String, filterId: String) {
+        replaceFilters(deviceId, listOf(filterId))
+    }
+
+    fun replaceFilters(deviceId: String, filterIds: Collection<String>) {
+        if (filterIds.isEmpty()) return
         _devices.value = _devices.value.map { device ->
-            if (device.id == deviceId) device.withSelfReplaced(filterId) else device
+            if (device.id == deviceId) device.withReplacedFilters(filterIds) else device
         }
     }
 

@@ -26,12 +26,18 @@ import androidx.compose.ui.unit.sp
 import com.senplo.plocare.ui.theme.PloCareColor
 
 @Composable
-internal fun CustomerSearchTab(onOpenCustomer: (String) -> Unit) {
+internal fun CustomerSearchTab(
+    visitViews: List<PartnerVisitView>,
+    onOpenCustomer: (String) -> Unit,
+) {
     var query by remember { mutableStateOf("") }
-    val visibleCustomers = searchPartnerVisits(query)
+    val visits = visitViews.map { it.visit }
+    val visibleCustomers = searchPartnerVisits(query, visits).mapNotNull { match ->
+        visitViews.find { it.customerId == match.customerId }
+    }
 
     fun openExactOrKeepList() {
-        findPartnerVisit(query)?.let { onOpenCustomer(it.customerId) }
+        findPartnerVisit(query, visits)?.let { onOpenCustomer(it.customerId) }
     }
 
     PartnerPage("고객 조회", "고객 번호로 검색하거나 담당 고객을 확인하세요") {
@@ -64,12 +70,14 @@ internal fun CustomerSearchTab(onOpenCustomer: (String) -> Unit) {
             ),
         )
         SectionTitle("교체 긴급 고객", "필터 소진율 100% 이상")
-        CustomerCard(partnerVisits.first(), onOpenCustomer = { onOpenCustomer(partnerVisits.first().customerId) })
+        visitViews.firstOrNull { it.urgent && !it.completed }?.let { urgent ->
+            CustomerCard(urgent, onOpenCustomer = { onOpenCustomer(urgent.customerId) })
+        }
         SectionTitle("담당 고객", "긴급도 높은 순 · ${visibleCustomers.size}명 표시")
         if (visibleCustomers.isEmpty()) {
             EmptySearchResult(query)
         } else {
-            visibleCustomers.forEach { customer ->
+            visibleCustomers.sortedByDescending { it.urgent }.forEach { customer ->
                 CustomerCard(customer, onOpenCustomer = { onOpenCustomer(customer.customerId) })
                 Spacer(Modifier.height(10.dp))
             }
@@ -78,7 +86,7 @@ internal fun CustomerSearchTab(onOpenCustomer: (String) -> Unit) {
 }
 
 @Composable
-private fun CustomerCard(customer: PartnerVisitFixture, onOpenCustomer: () -> Unit) {
+private fun CustomerCard(customer: PartnerVisitView, onOpenCustomer: () -> Unit) {
     PartnerCard(onClick = onOpenCustomer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -91,7 +99,7 @@ private fun CustomerCard(customer: PartnerVisitFixture, onOpenCustomer: () -> Un
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(customer.address, color = PloCareColor.TextSecondary, fontSize = 12.sp)
-                Text("${customer.filtersLabel} · ${customer.exhaustion}", color = if (customer.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
+                Text("${customer.filtersLabel} · ${customer.exhaustionLabel}", color = if (customer.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
             }
             Text("현장 화면  ›", color = PloCareColor.AquaTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         }

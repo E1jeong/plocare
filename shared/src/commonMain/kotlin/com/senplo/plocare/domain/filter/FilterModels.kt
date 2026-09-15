@@ -26,16 +26,24 @@ data class PurifierDevice(
     val householdSize: Int,
     val totalCumulativeL: Double,
     val dailyAvgL: Double,
+    val recentDailyUsageL: List<Double>,
     val lastTelemetryAt: Instant,
     val filters: List<FilterCartridge>,
     val visitTicket: VisitTicket? = null,
 )
 
-fun PurifierDevice.withSelfReplaced(filterId: String): PurifierDevice {
-    require(filters.any { it.id == filterId }) { "Unknown filter: $filterId" }
+fun PurifierDevice.withSelfReplaced(filterId: String): PurifierDevice =
+    withReplacedFilters(listOf(filterId))
+
+fun PurifierDevice.withReplacedFilters(filterIds: Collection<String>): PurifierDevice {
+    val ids = filterIds.toSet()
+    require(ids.isNotEmpty()) { "No filters selected" }
+    val known = filters.map { it.id }.toSet()
+    val unknown = ids - known
+    require(unknown.isEmpty()) { "Unknown filter: $unknown" }
     return copy(
         filters = filters.map { filter ->
-            if (filter.id == filterId) filter.copy(baselineL = totalCumulativeL) else filter
+            if (filter.id in ids) filter.copy(baselineL = totalCumulativeL) else filter
         },
     )
 }

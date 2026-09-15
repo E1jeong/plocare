@@ -1,5 +1,14 @@
 package com.senplo.plocare.ui.partner
 
+import com.senplo.plocare.domain.filter.DashboardFixtures
+import com.senplo.plocare.domain.filter.PurifierDevice
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
+
+internal const val DEVICE_C2048 = "device-c-2048"
+internal const val DEVICE_C4096 = "device-c-4096"
+
 internal data class PartnerFilterStatus(
     val stage: Int,
     val name: String,
@@ -15,6 +24,8 @@ internal data class PartnerVisitFixture(
     val filtersLabel: String,
     val exhaustion: String,
     val status: String,
+    val deviceId: String,
+    val targetFilterIds: List<String>,
     val urgent: Boolean = false,
     val completed: Boolean = false,
     val filterStatuses: List<PartnerFilterStatus>,
@@ -31,6 +42,8 @@ internal val partnerVisits: List<PartnerVisitFixture> = listOf(
         filtersLabel = "세디먼트 · 프리카본",
         exhaustion = "최고 소진율 112%",
         status = "긴급",
+        deviceId = DashboardFixtures.KITCHEN_ID,
+        targetFilterIds = listOf("kitchen-1", "kitchen-2"),
         urgent = true,
         filterStatuses = listOf(
             PartnerFilterStatus(1, "세디먼트", 112, "즉시 교체"),
@@ -47,6 +60,8 @@ internal val partnerVisits: List<PartnerVisitFixture> = listOf(
         filtersLabel = "포스트카본",
         exhaustion = "소진율 88%",
         status = "예정",
+        deviceId = DEVICE_C2048,
+        targetFilterIds = listOf("c2048-4"),
         filterStatuses = listOf(
             PartnerFilterStatus(4, "포스트카본", 88, "교체 임박"),
         ),
@@ -59,6 +74,8 @@ internal val partnerVisits: List<PartnerVisitFixture> = listOf(
         filtersLabel = "세디먼트",
         exhaustion = "소진율 91%",
         status = "예정",
+        deviceId = DashboardFixtures.OFFICE_ID,
+        targetFilterIds = listOf("office-1"),
         filterStatuses = listOf(
             PartnerFilterStatus(1, "세디먼트", 91, "교체 임박"),
         ),
@@ -71,6 +88,8 @@ internal val partnerVisits: List<PartnerVisitFixture> = listOf(
         filtersLabel = "RO 멤브레인",
         exhaustion = "교체 완료",
         status = "완료",
+        deviceId = DEVICE_C4096,
+        targetFilterIds = listOf("c4096-3"),
         completed = true,
         filterStatuses = listOf(
             PartnerFilterStatus(3, "RO 멤브레인", 12, "교체 완료"),
@@ -78,15 +97,43 @@ internal val partnerVisits: List<PartnerVisitFixture> = listOf(
     ),
 )
 
-internal fun findPartnerVisit(customerId: String): PartnerVisitFixture? {
-    val needle = customerId.trim()
-    if (needle.isEmpty()) return null
-    return partnerVisits.find { it.customerId.equals(needle, ignoreCase = true) }
+internal fun partnerDevices(now: Instant, timeZone: TimeZone): List<PurifierDevice> {
+    val today = now.toLocalDateTime(timeZone).date
+    val kitchen = DashboardFixtures.kitchenPurifier(today, now)
+    val office = DashboardFixtures.officePurifier(today, now)
+    return listOf(
+        kitchen,
+        kitchen.copy(
+            id = DEVICE_C2048,
+            nickname = "아차산 정수기",
+            filters = kitchen.filters.map { cartridge -> cartridge.copy(id = "c2048-${cartridge.stage}") },
+            visitTicket = null,
+        ),
+        office,
+        kitchen.copy(
+            id = DEVICE_C4096,
+            nickname = "능동 정수기",
+            filters = kitchen.filters.map { cartridge -> cartridge.copy(id = "c4096-${cartridge.stage}") },
+            visitTicket = null,
+        ),
+    )
 }
 
-internal fun searchPartnerVisits(query: String): List<PartnerVisitFixture> {
+internal fun findPartnerVisit(
+    customerId: String,
+    visits: List<PartnerVisitFixture> = partnerVisits,
+): PartnerVisitFixture? {
+    val needle = customerId.trim()
+    if (needle.isEmpty()) return null
+    return visits.find { it.customerId.equals(needle, ignoreCase = true) }
+}
+
+internal fun searchPartnerVisits(
+    query: String,
+    visits: List<PartnerVisitFixture> = partnerVisits,
+): List<PartnerVisitFixture> {
     val needle = query.trim()
-    return partnerVisits.filter { visit ->
+    return visits.filter { visit ->
         !visit.completed && (
             needle.isEmpty() ||
                 visit.customerId.contains(needle, ignoreCase = true) ||

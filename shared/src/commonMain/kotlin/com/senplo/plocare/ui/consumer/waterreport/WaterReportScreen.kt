@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import com.senplo.plocare.domain.filter.PurifierDevice
+import com.senplo.plocare.domain.filter.buildWaterReportChart
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
@@ -33,18 +34,23 @@ import com.senplo.plocare.ui.theme.PloCareColor
 import kotlin.math.floor
 import kotlin.math.round
 
-private val dailyUsage = listOf(3.8f, 4.5f, 4.1f, 5.2f, 3.6f, 4.9f, 4.4f, 5.6f, 3.9f, 4.7f, 4.2f, 5.1f, 4.3f, 4.8f)
-
 private fun groupedInt(value: Int): String {
     val sign = if (value < 0) "-" else ""
     val digits = kotlin.math.abs(value).toString()
     return sign + digits.reversed().chunked(3).joinToString(",").reversed()
 }
 
+private fun formatOneDecimal(value: Double): String {
+    val tenths = round(value * 10.0).toInt()
+    return if (tenths % 10 == 0) (tenths / 10).toString() else "${tenths / 10}.${tenths % 10}"
+}
+
 @Composable
 fun WaterReportScreen(device: PurifierDevice) {
     val lifetimeLiters = round(device.totalCumulativeL).toInt()
     val savedBottles = floor(lifetimeLiters / 2.0).toInt()
+    val chart = buildWaterReportChart(device)
+    val averageLabel = "14일 평균 ${formatOneDecimal(chart.averageL)} L"
 
     Column(
         modifier = Modifier
@@ -59,16 +65,20 @@ fun WaterReportScreen(device: PurifierDevice) {
         Spacer(Modifier.height(18.dp))
         ConsumerCard(modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                Metric("오늘", "4.8 L", Modifier.weight(1f), highlight = true)
-                Metric("30일 누적", "142 L", Modifier.weight(1f))
+                Metric("오늘", "${formatOneDecimal(chart.todayL)} L", Modifier.weight(1f), highlight = true)
+                Metric(
+                    if (chart.periodDays == 0) "기간 누적" else "${chart.periodDays}일 누적",
+                    "${groupedInt(round(chart.periodSumL).toInt())} L",
+                    Modifier.weight(1f),
+                )
                 Metric("전체 누적", "${groupedInt(lifetimeLiters)} L", Modifier.weight(1f))
             }
         }
 
         Spacer(Modifier.height(22.dp))
-        ConsumerSectionTitle(title = "최근 14일 사용량", caption = "14일 평균 4.5 L/일")
+        ConsumerSectionTitle(title = "최근 14일 사용량", caption = "$averageLabel/일")
         Spacer(Modifier.height(10.dp))
-        ConsumptionChart(dailyUsage = dailyUsage, average = 4.5f)
+        ConsumptionChart(dailyUsage = chart.dailyUsageL, average = chart.averageL, averageLabel = averageLabel)
         Spacer(Modifier.height(8.dp))
         Text(
             "실제 14일 물 사용량을 기준으로 필터 교체 D-Day를 계산해요.",
@@ -117,25 +127,32 @@ private fun Metric(label: String, value: String, modifier: Modifier, highlight: 
 }
 
 @Composable
-private fun ConsumptionChart(dailyUsage: List<Float>, average: Float) {
+private fun ConsumptionChart(
+    dailyUsage: List<Double>,
+    average: Double,
+    averageLabel: String,
+) {
     val pastBar = PloCareColor.SurfaceBorder
     val todayBar = PloCareColor.AquaTeal
     val averageLine = PloCareColor.VividCyan
+    val oldestLabel = if (dailyUsage.isEmpty()) "D-14" else "D-${dailyUsage.lastIndex}"
     ConsumerCard(modifier = Modifier.fillMaxWidth()) {
         Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
             val maxLiters = 10f
-            val gap = 5.dp.toPx()
-            val barWidth = (size.width - gap * (dailyUsage.size - 1)) / dailyUsage.size
-            dailyUsage.forEachIndexed { index, liters ->
-                val height = size.height * (liters / maxLiters)
-                drawRoundRect(
-                    color = if (index == dailyUsage.lastIndex) todayBar else pastBar,
-                    topLeft = Offset(index * (barWidth + gap), size.height - height),
-                    size = Size(barWidth, height),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
-                )
+            if (dailyUsage.isNotEmpty()) {
+                val gap = 5.dp.toPx()
+                val barWidth = (size.width - gap * (dailyUsage.size - 1)) / dailyUsage.size
+                dailyUsage.forEachIndexed { index, liters ->
+                    val height = size.height * (liters.toFloat() / maxLiters).coerceIn(0f, 1f)
+                    drawRoundRect(
+                        color = if (index == dailyUsage.lastIndex) todayBar else pastBar,
+                        topLeft = Offset(index * (barWidth + gap), size.height - height),
+                        size = Size(barWidth, height),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
+                    )
+                }
             }
-            val averageY = size.height - size.height * (average / maxLiters)
+            val averageY = size.height - size.height * (average.toFloat() / maxLiters).coerceIn(0f, 1f)
             drawLine(
                 color = averageLine,
                 start = Offset(0f, averageY),
@@ -146,8 +163,8 @@ private fun ConsumptionChart(dailyUsage: List<Float>, average: Float) {
         }
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("D-13", color = PloCareColor.TextTertiary, fontSize = 10.sp)
-            Text("14일 평균 4.5 L", color = PloCareColor.VividCyan, fontSize = 10.sp)
+            Text(oldestLabel, color = PloCareColor.TextTertiary, fontSize = 10.sp)
+            Text(averageLabel, color = PloCareColor.VividCyan, fontSize = 10.sp)
             Text("오늘", color = PloCareColor.AquaTeal, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }

@@ -28,6 +28,26 @@ class PurifierRepositoryTest {
     }
 
     @Test
+    fun replaceFiltersUpdatesOnlySelectedCartridges() {
+        val repository = PurifierRepository(DashboardFixtures.devices(now, timeZone))
+        val kitchenBefore = repository.device(DashboardFixtures.KITCHEN_ID)!!
+        val officeBefore = repository.device(DashboardFixtures.OFFICE_ID)!!
+        val stage3Before = kitchenBefore.filters.single { it.id == "kitchen-3" }.baselineL
+        val stage4Before = kitchenBefore.filters.single { it.id == "kitchen-4" }.baselineL
+
+        repository.replaceFilters(DashboardFixtures.KITCHEN_ID, listOf("kitchen-1", "kitchen-2"))
+
+        val kitchen = repository.device(DashboardFixtures.KITCHEN_ID)!!
+        val office = repository.device(DashboardFixtures.OFFICE_ID)!!
+        assertEquals(kitchenBefore.totalCumulativeL, kitchen.filters.single { it.id == "kitchen-1" }.baselineL)
+        assertEquals(kitchenBefore.totalCumulativeL, kitchen.filters.single { it.id == "kitchen-2" }.baselineL)
+        assertEquals(stage3Before, kitchen.filters.single { it.id == "kitchen-3" }.baselineL)
+        assertEquals(stage4Before, kitchen.filters.single { it.id == "kitchen-4" }.baselineL)
+        assertEquals(kitchenBefore.totalCumulativeL, kitchen.totalCumulativeL)
+        assertEquals(officeBefore.filters.map { it.baselineL }, office.filters.map { it.baselineL })
+    }
+
+    @Test
     fun refreshTelemetryTouchesOnlySelectedDevice() {
         val repository = PurifierRepository(DashboardFixtures.devices(now, timeZone))
         val officeBefore = repository.device(DashboardFixtures.OFFICE_ID)!!.lastTelemetryAt

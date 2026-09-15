@@ -1,7 +1,6 @@
 package com.senplo.plocare.ui.consumer.filtercare
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,46 +16,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.domain.filter.DashboardSnapshot
-import com.senplo.plocare.domain.filter.FilterSnapshot
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 @Composable
-fun VisitRequestScreen(
+fun FilterPurchaseScreen(
     snapshot: DashboardSnapshot,
     preselectedFilterIds: List<String>,
     onBack: () -> Unit,
-    onSubmitted: () -> Unit,
+    onConfirmed: () -> Unit,
 ) {
-    val timeZone = remember { TimeZone.currentSystemDefault() }
-    val today = remember { Clock.System.now().toLocalDateTime(timeZone).date }
-    val dateOptions = remember(today) { visitDateOptions(today) }
     val initialSelected = remember(preselectedFilterIds, snapshot.filters) {
         when {
             preselectedFilterIds.isNotEmpty() -> preselectedFilterIds.toSet()
@@ -67,11 +53,11 @@ fun VisitRequestScreen(
     var contact by remember { mutableStateOf("") }
     var address by remember { mutableStateOf(DEFAULT_VISIT_ADDRESS) }
     var selectedFilterIds by remember { mutableStateOf(initialSelected) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(dateOptions.firstOrNull()) }
-    var selectedWindow by remember { mutableStateOf<VisitTimeWindow?>(null) }
-    var notes by remember { mutableStateOf("") }
+    var selectedMode by remember { mutableStateOf<FilterSupplyMode?>(null) }
     var formError by remember { mutableStateOf<String?>(null) }
-    var submitted by remember { mutableStateOf(false) }
+    var confirmed by remember { mutableStateOf(false) }
+    val mode = selectedMode
+    val localTotal = mode?.let { purchaseSubtotalKrw(selectedFilterIds.size, it) }
 
     Box(
         modifier = Modifier
@@ -98,23 +84,23 @@ fun VisitRequestScreen(
                     .padding(vertical = 8.dp),
             )
             Text(
-                text = "방문 케어 예약",
+                text = "정품 필터 구매·구독",
                 color = PloCareColor.TextPrimary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "${snapshot.device.nickname} · 희망 일정과 교체 필터를 선택하세요.",
+                text = "${snapshot.device.nickname} · 로컬 가격 미리보기입니다.",
                 color = PloCareColor.TextSecondary,
                 fontSize = 13.sp,
             )
             Spacer(Modifier.height(18.dp))
 
-            if (submitted) {
+            if (confirmed && mode != null && localTotal != null) {
                 ConsumerCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "방문 요청이 접수되었습니다.",
+                        text = purchaseConfirmationTitle(mode),
                         color = PloCareColor.TextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
@@ -123,24 +109,33 @@ fun VisitRequestScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "파트너 배정 전 미리보기입니다. 서버에 저장되지 않습니다.",
+                        text = purchaseConfirmationDetail(mode),
                         color = PloCareColor.TextSecondary,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "${mode.label} · ${selectedFilterIds.size}개 · ${formatKrw(localTotal)}",
+                        color = PloCareColor.TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = onSubmitted,
+                        onClick = onConfirmed,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
                     ) {
-                        Text("대시보드로", color = PloCareColor.BgDeep, fontWeight = FontWeight.Bold)
+                        Text("필터 관리로", color = PloCareColor.BgDeep, fontWeight = FontWeight.Bold)
                     }
                 }
             } else {
-                ConsumerSectionTitle(title = "연락처 · 주소")
+                ConsumerSectionTitle(title = "연락처 · 배송지")
                 Spacer(Modifier.height(10.dp))
                 VisitField(
                     value = contact,
@@ -152,11 +147,11 @@ fun VisitRequestScreen(
                 VisitField(
                     value = address,
                     onValueChange = { address = it },
-                    label = "방문 주소",
+                    label = "배송 주소",
                     keyboardType = KeyboardType.Text,
                 )
                 Spacer(Modifier.height(22.dp))
-                ConsumerSectionTitle(title = "교체 필터", caption = "묶음 교체가 필요한 필터는 미리 선택되어 있습니다.")
+                ConsumerSectionTitle(title = "구매 필터", caption = "관리가 필요한 필터는 미리 선택되어 있습니다.")
                 Spacer(Modifier.height(10.dp))
                 snapshot.filters.forEach { filter ->
                     FilterSelectRow(
@@ -173,39 +168,42 @@ fun VisitRequestScreen(
                     Spacer(Modifier.height(8.dp))
                 }
                 Spacer(Modifier.height(12.dp))
-                ConsumerSectionTitle(title = "희망 일정", caption = "영업일 기준 이틀 이후부터 예약할 수 있습니다.")
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    dateOptions.forEach { date ->
-                        ChoiceChip(
-                            label = visitDateChipLabel(date),
-                            selected = selectedDate == date,
-                            onClick = { selectedDate = date },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VisitTimeWindow.entries.forEach { window ->
-                        ChoiceChip(
-                            label = window.label,
-                            selected = selectedWindow == window,
-                            onClick = { selectedWindow = window },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(22.dp))
-                ConsumerSectionTitle(title = "요청 사항")
-                Spacer(Modifier.height(10.dp))
-                VisitField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = "반려동물, 주차, 싱크대 잠금 등",
-                    keyboardType = KeyboardType.Text,
-                    singleLine = false,
+                ConsumerSectionTitle(
+                    title = "구매 방식",
+                    caption = "구독은 로컬 10% 할인만 반영합니다. 자동 결제는 없습니다.",
                 )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterSupplyMode.entries.forEach { option ->
+                        ChoiceChip(
+                            label = option.label,
+                            selected = selectedMode == option,
+                            onClick = { selectedMode = option },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                ConsumerCard(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "로컬 예상 금액",
+                        color = PloCareColor.TextSecondary,
+                        fontSize = 11.sp,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = localTotal?.let { formatKrw(it) } ?: "구매 또는 구독을 선택해 주세요.",
+                        color = PloCareColor.TextPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "단가 ${formatKrw(FILTER_UNIT_PRICE_KRW)} · 백엔드 가격 아님",
+                        color = PloCareColor.TextTertiary,
+                        fontSize = 11.sp,
+                    )
+                }
                 formError?.let {
                     Spacer(Modifier.height(12.dp))
                     Text(it, color = PloCareColor.StatusAlert, fontSize = 13.sp)
@@ -213,20 +211,17 @@ fun VisitRequestScreen(
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
-                        val error = validateVisitRequest(
-                            VisitRequestDraft(
+                        val error = validateFilterPurchase(
+                            FilterPurchaseDraft(
                                 contact = contact,
                                 address = address,
                                 selectedFilterIds = selectedFilterIds,
-                                date = selectedDate,
-                                window = selectedWindow,
-                                notes = notes,
+                                mode = selectedMode,
                             ),
-                            today,
                         )
                         if (error == null) {
                             formError = null
-                            submitted = true
+                            confirmed = true
                         } else {
                             formError = error
                         }
@@ -235,112 +230,10 @@ fun VisitRequestScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
                 ) {
-                    Text("방문 요청하기", color = PloCareColor.BgDeep, fontWeight = FontWeight.Bold)
+                    Text("미리보기 확인", color = PloCareColor.BgDeep, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.height(24.dp))
         }
     }
-}
-
-@Composable
-internal fun FilterSelectRow(
-    filter: FilterSnapshot,
-    selected: Boolean,
-    onToggle: () -> Unit,
-) {
-    ConsumerCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle),
-        borderColor = if (selected) PloCareColor.AquaTeal else PloCareColor.SurfaceBorder,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (selected) "✓" else "○",
-                color = if (selected) PloCareColor.AquaTeal else PloCareColor.TextTertiary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                Text(
-                    "${filter.stage}단 ${filter.name}",
-                    color = PloCareColor.TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "권장 통수량의 ${filter.exhaustionPercent.toInt()}% 사용",
-                    color = PloCareColor.TextSecondary,
-                    fontSize = 11.sp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun ChoiceChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .height(40.dp)
-            .border(
-                width = 1.dp,
-                color = if (selected) PloCareColor.AquaTeal else PloCareColor.SurfaceBorder,
-                shape = RoundedCornerShape(10.dp),
-            )
-            .background(
-                color = if (selected) PloCareColor.AquaTeal.copy(alpha = 0.16f) else PloCareColor.SurfaceCard,
-                shape = RoundedCornerShape(10.dp),
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (selected) PloCareColor.AquaTeal else PloCareColor.TextSecondary,
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-internal fun VisitField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    keyboardType: KeyboardType,
-    singleLine: Boolean = true,
-) {
-    OutlinedTextField(
-        modifier = Modifier.fillMaxWidth(),
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        singleLine = singleLine,
-        minLines = if (singleLine) 1 else 3,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = keyboardType,
-            imeAction = if (singleLine) ImeAction.Next else ImeAction.Default,
-        ),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = PloCareColor.TextPrimary,
-            unfocusedTextColor = PloCareColor.TextPrimary,
-            focusedBorderColor = PloCareColor.AquaTeal,
-            unfocusedBorderColor = PloCareColor.SurfaceBorder,
-            focusedLabelColor = PloCareColor.AquaTeal,
-            unfocusedLabelColor = PloCareColor.TextSecondary,
-            cursorColor = PloCareColor.AquaTeal,
-            focusedContainerColor = PloCareColor.SurfaceCard,
-            unfocusedContainerColor = PloCareColor.SurfaceCard,
-        ),
-    )
 }

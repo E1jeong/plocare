@@ -14,6 +14,7 @@ import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.buildDashboardSnapshot
 import com.senplo.plocare.ui.consumer.ConsumerDeviceSession
 import com.senplo.plocare.ui.consumer.ConsumerMainScreen
+import com.senplo.plocare.ui.consumer.filtercare.FilterPurchaseScreen
 import com.senplo.plocare.ui.consumer.filtercare.VisitRequestScreen
 import com.senplo.plocare.ui.consumer.filtercare.decodeVisitFilterIds
 import com.senplo.plocare.ui.consumer.filtercare.encodeVisitFilterIds
@@ -57,8 +58,16 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
+                onOpenPurchase = { filterIds ->
+                    navController.navigate(Route.FilterPurchase(encodeVisitFilterIds(filterIds))) {
+                        launchSingleTop = true
+                    }
+                },
                 onOpenSettings = {
-                    navController.navigate(Route.DeviceSettings.consumer(session.selectedId.value)) {
+                    val selected = session.selectedDevice()
+                    navController.navigate(
+                        Route.DeviceSettings.consumer(selected.id, selected.nickname),
+                    ) {
                         launchSingleTop = true
                     }
                 },
@@ -80,6 +89,18 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                     ?.set(CONSUMER_TAB_KEY, ConsumerTabItem.DASHBOARD.name)
                 navController.popBackStack()
             },
+        )
+    }
+
+    composable<Route.FilterPurchase> { entry ->
+        val route = entry.toRoute<Route.FilterPurchase>()
+        val parent = navController.getBackStackEntry<Route.ConsumerMain>()
+        val session = consumerDeviceSession(parent)
+        FilterPurchaseScreen(
+            snapshot = session.dashboardSnapshot(),
+            preselectedFilterIds = decodeVisitFilterIds(route.filterIds),
+            onBack = { navController.popBackStack() },
+            onConfirmed = { navController.popBackStack() },
         )
     }
 }

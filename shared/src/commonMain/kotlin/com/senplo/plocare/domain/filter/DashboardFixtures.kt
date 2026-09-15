@@ -24,7 +24,10 @@ object DashboardFixtures {
 
     fun kitchenPurifier(today: LocalDate, now: Instant): PurifierDevice {
         val totalCumulativeL = 4_820.0
-        val dailyAvgL = 4.2
+        val recentDailyUsageL = listOf(
+            3.8, 4.5, 4.1, 4.2, 3.6, 4.9, 4.4, 4.6, 3.9, 4.7, 4.2, 4.1, 3.0, 4.8,
+        )
+        val dailyAvgL = FilterLifeCalculator.dailyAverage(recentDailyUsageL)
         return PurifierDevice(
             id = KITCHEN_ID,
             nickname = "우리 집 주방 정수기",
@@ -32,6 +35,7 @@ object DashboardFixtures {
             householdSize = 3,
             totalCumulativeL = totalCumulativeL,
             dailyAvgL = dailyAvgL,
+            recentDailyUsageL = recentDailyUsageL,
             lastTelemetryAt = now - 2.minutes,
             filters = listOf(
                 cartridge(
@@ -83,7 +87,10 @@ object DashboardFixtures {
 
     fun officePurifier(today: LocalDate, now: Instant): PurifierDevice {
         val totalCumulativeL = 2_100.0
-        val dailyAvgL = 4.2
+        val recentDailyUsageL = listOf(
+            2.8, 3.1, 3.4, 5.8, 6.2, 3.0, 2.9, 3.3, 5.5, 6.0, 3.2, 3.6, 5.0, 5.0,
+        )
+        val dailyAvgL = FilterLifeCalculator.dailyAverage(recentDailyUsageL)
         return PurifierDevice(
             id = OFFICE_ID,
             nickname = "사무실 직수 정수기",
@@ -91,6 +98,7 @@ object DashboardFixtures {
             householdSize = 2,
             totalCumulativeL = totalCumulativeL,
             dailyAvgL = dailyAvgL,
+            recentDailyUsageL = recentDailyUsageL,
             lastTelemetryAt = now - 30.hours,
             filters = listOf(
                 FilterCartridge(

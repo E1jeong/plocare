@@ -18,8 +18,10 @@ class SettingsWizardFormTest {
 
     @Test
     fun partnerSettingsRouteKeepsCustomerId() {
-        val route = Route.DeviceSettings.partner("C-1024", "device-kitchen")
+        val route = Route.DeviceSettings.partner("C-1024", "device-c-2048", "아차산 정수기")
         assertEquals("C-1024", route.customerId)
+        assertEquals("device-c-2048", route.deviceId)
+        assertEquals("아차산 정수기", route.deviceNickname)
         assertTrue(route.isPartnerContext)
     }
 

@@ -122,6 +122,20 @@ class DashboardSnapshotTest {
     }
 
     @Test
+    fun replacedFiltersUpdateOnlySelectedBaselines() {
+        val now = now()
+        val original = DashboardFixtures.kitchenPurifier(today, now)
+        val replaced = original.withReplacedFilters(listOf("kitchen-1", "kitchen-2"))
+
+        assertEquals(original.totalCumulativeL, replaced.totalCumulativeL)
+        assertEquals(original.totalCumulativeL, replaced.filters.single { it.id == "kitchen-1" }.baselineL)
+        assertEquals(original.totalCumulativeL, replaced.filters.single { it.id == "kitchen-2" }.baselineL)
+        original.filters.filter { it.id !in setOf("kitchen-1", "kitchen-2") }.forEach { untouched ->
+            assertEquals(untouched.baselineL, replaced.filters.single { it.id == untouched.id }.baselineL)
+        }
+    }
+
+    @Test
     fun selfReplacementUpdatesOnlySelectedBaseline() {
         val now = now()
         val original = DashboardFixtures.kitchenPurifier(today, now)

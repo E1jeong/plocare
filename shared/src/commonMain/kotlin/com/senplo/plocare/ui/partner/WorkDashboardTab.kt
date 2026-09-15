@@ -26,27 +26,44 @@ import com.senplo.plocare.ui.theme.PloCareColor
 
 @Composable
 internal fun WorkDashboardTab(
+    visitViews: List<PartnerVisitView>,
     onInventoryClick: () -> Unit,
     onOpenCustomer: (String) -> Unit,
 ) {
-    val nextVisit = partnerVisits.first { !it.completed }
+    val openViews = visitViews.filter { !it.completed }
+    val nextVisit = openViews.firstOrNull { it.urgent } ?: openViews.firstOrNull()
+    val scheduled = openViews.count { !it.urgent }
+    val urgent = openViews.count { it.urgent }
+    val done = visitViews.count { it.completed }
     PartnerPage("좋은 아침이에요, 김파트너님", "담당 지역 · 서울 성동구 / 광진구") {
-        SectionTitle("오늘의 업무 요약", "9월 10일 목요일")
+        SectionTitle("오늘의 업무 요약", "연결된 방문 기준")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryMetric("예정", "8건", PloCareColor.VividCyan, Modifier.weight(1f))
-            SummaryMetric("긴급", "2건", PloCareColor.StatusAlert, Modifier.weight(1f))
-            SummaryMetric("완료", "1건", PloCareColor.StatusGood, Modifier.weight(1f))
+            SummaryMetric("예정", "${scheduled}건", PloCareColor.VividCyan, Modifier.weight(1f))
+            SummaryMetric("긴급", "${urgent}건", PloCareColor.StatusAlert, Modifier.weight(1f))
+            SummaryMetric("완료", "${done}건", PloCareColor.StatusGood, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         InfoStrip("예상 이동 + 작업 시간", "4시간 10분")
 
-        SectionTitle("다음 방문", "긴급 고객부터 현장 화면에 들어갑니다")
-        PartnerCard(onClick = { onOpenCustomer(nextVisit.customerId) }) {
-            Text(nextVisit.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            Text("${nextVisit.time} · ${nextVisit.address}", color = PloCareColor.TextSecondary, fontSize = 12.sp)
-            Spacer(Modifier.height(8.dp))
-            Text("현장 화면 열기  ›", color = PloCareColor.AquaTeal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        SectionTitle("다음 방문", "소진율 100% 초과 고객부터 현장 화면에 들어갑니다")
+        if (nextVisit == null) {
+            PartnerCard {
+                Text("남은 방문이 없습니다", color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            PartnerCard(onClick = { onOpenCustomer(nextVisit.customerId) }) {
+                Text(nextVisit.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(4.dp))
+                Text("${nextVisit.time} · ${nextVisit.address}", color = PloCareColor.TextSecondary, fontSize = 12.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "${nextVisit.filtersLabel} · ${nextVisit.exhaustionLabel}",
+                    color = if (nextVisit.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary,
+                    fontSize = 12.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("현장 화면 열기  ›", color = PloCareColor.AquaTeal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
         SectionTitle("추천 방문 경로", "긴급도와 이동 시간을 반영했어요")

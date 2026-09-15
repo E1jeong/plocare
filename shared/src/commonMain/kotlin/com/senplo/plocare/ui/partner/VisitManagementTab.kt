@@ -37,10 +37,15 @@ import com.senplo.plocare.ui.theme.PloCareColor
 private enum class VisitView(val title: String) { MAP("지도"), LIST("목록") }
 
 @Composable
-internal fun VisitManagementTab(onOpenCustomer: (String) -> Unit) {
+internal fun VisitManagementTab(
+    visitViews: List<PartnerVisitView>,
+    onOpenCustomer: (String) -> Unit,
+) {
     var selectedView by remember { mutableStateOf(VisitView.MAP) }
+    val urgent = visitViews.count { it.urgent && !it.completed }
+    val done = visitViews.count { it.completed }
 
-    PartnerPage("방문 관리", "오늘 8건 · 긴급 2건 · 완료 1건") {
+    PartnerPage("방문 관리", "오늘 ${visitViews.size}건 · 긴급 ${urgent}건 · 완료 ${done}건") {
         SegmentedToggle(VisitView.entries.map { it.title }, selectedView.ordinal) {
             selectedView = VisitView.entries[it]
         }
@@ -53,8 +58,8 @@ internal fun VisitManagementTab(onOpenCustomer: (String) -> Unit) {
             InfoStrip("추천 순서", "길게 눌러 방문 순서를 조정할 수 있어요")
         }
         SectionTitle(if (selectedView == VisitView.MAP) "다음 방문" else "오늘의 방문 목록", "추천 경로 순")
-        partnerVisits.forEach { visit ->
-            VisitCard(visit, onOpenCustomer = { onOpenCustomer(visit.customerId) })
+        visitViews.forEach { view ->
+            VisitCard(view, onOpenCustomer = { onOpenCustomer(view.customerId) })
             Spacer(Modifier.height(10.dp))
         }
     }
@@ -126,22 +131,22 @@ private fun LegendItem(label: String, color: Color) {
 }
 
 @Composable
-private fun VisitCard(visit: PartnerVisitFixture, onOpenCustomer: () -> Unit) {
+private fun VisitCard(view: PartnerVisitView, onOpenCustomer: () -> Unit) {
     PartnerCard(onClick = onOpenCustomer) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(visit.time, color = if (visit.urgent) PloCareColor.StatusAlert else PloCareColor.VividCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                StatusPill(visit.status, when { visit.urgent -> PloCareColor.StatusAlert; visit.completed -> PloCareColor.TextTertiary; else -> PloCareColor.DeepBlue })
+                Text(view.time, color = if (view.urgent) PloCareColor.StatusAlert else PloCareColor.VividCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                StatusPill(view.status, when { view.urgent -> PloCareColor.StatusAlert; view.completed -> PloCareColor.TextTertiary; else -> PloCareColor.DeepBlue })
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(visit.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
-                Text(visit.address, color = PloCareColor.TextSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${visit.filtersLabel} · ${visit.exhaustion}", color = if (visit.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
+                Text(view.displayName, color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
+                Text(view.address, color = PloCareColor.TextSecondary, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${view.filtersLabel} · ${view.exhaustionLabel}", color = if (view.urgent) PloCareColor.StatusAlert else PloCareColor.TextTertiary, fontSize = 11.sp)
             }
             Text("›", color = PloCareColor.AquaTeal, fontSize = 22.sp)
         }
-        if (!visit.completed) {
+        if (!view.completed) {
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SmallAction("카카오내비", Modifier.weight(1f), secondary = true)

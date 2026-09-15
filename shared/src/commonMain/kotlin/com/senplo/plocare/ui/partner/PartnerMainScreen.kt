@@ -28,8 +28,9 @@ import plocare.shared.generated.resources.nav_partner_inventory
 import plocare.shared.generated.resources.nav_partner_visits
 
 @Composable
-fun PartnerMainScreen(
+internal fun PartnerMainScreen(
     currentTab: PartnerTab = PartnerTab.WORK,
+    visitViews: List<PartnerVisitView> = emptyList(),
     onTabChange: (PartnerTab) -> Unit = {},
     onOpenCustomer: (String) -> Unit = {},
 ) {
@@ -73,11 +74,12 @@ fun PartnerMainScreen(
         ) {
             when (currentTab) {
                 PartnerTab.WORK -> WorkDashboardTab(
+                    visitViews = visitViews,
                     onInventoryClick = { onTabChange(PartnerTab.INVENTORY) },
                     onOpenCustomer = onOpenCustomer,
                 )
-                PartnerTab.VISITS -> VisitManagementTab(onOpenCustomer = onOpenCustomer)
-                PartnerTab.CUSTOMERS -> CustomerSearchTab(onOpenCustomer = onOpenCustomer)
+                PartnerTab.VISITS -> VisitManagementTab(visitViews = visitViews, onOpenCustomer = onOpenCustomer)
+                PartnerTab.CUSTOMERS -> CustomerSearchTab(visitViews = visitViews, onOpenCustomer = onOpenCustomer)
                 PartnerTab.INVENTORY -> InventoryTab()
                 PartnerTab.MY -> PartnerMyPageTab()
             }

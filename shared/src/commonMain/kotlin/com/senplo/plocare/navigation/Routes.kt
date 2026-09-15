@@ -21,6 +21,11 @@ sealed interface Route {
     ) : Route
 
     @Serializable
+    data class FilterPurchase(
+        val filterIds: String = "",
+    ) : Route
+
+    @Serializable
     data object PartnerMain : Route
 
     @Serializable
@@ -29,10 +34,16 @@ sealed interface Route {
     ) : Route
 
     @Serializable
+    data class WorkInformation(
+        val customerId: String,
+    ) : Route
+
+    @Serializable
     data class DeviceSettings(
         val audience: String,
         val deviceId: String,
         val customerId: String = "",
+        val deviceNickname: String = "",
     ) : Route {
         val isPartnerContext: Boolean get() = audience == PARTNER_SETTINGS_AUDIENCE
 
@@ -40,15 +51,17 @@ sealed interface Route {
             const val CONSUMER_SETTINGS_AUDIENCE = "USER"
             const val PARTNER_SETTINGS_AUDIENCE = "PARTNER"
 
-            fun consumer(deviceId: String) = DeviceSettings(
+            fun consumer(deviceId: String, deviceNickname: String = "") = DeviceSettings(
                 audience = CONSUMER_SETTINGS_AUDIENCE,
                 deviceId = deviceId,
+                deviceNickname = deviceNickname,
             )
 
-            fun partner(customerId: String, deviceId: String) = DeviceSettings(
+            fun partner(customerId: String, deviceId: String, deviceNickname: String = "") = DeviceSettings(
                 audience = PARTNER_SETTINGS_AUDIENCE,
                 deviceId = deviceId,
                 customerId = customerId,
+                deviceNickname = deviceNickname,
             )
         }
     }

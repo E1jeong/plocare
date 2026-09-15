@@ -44,6 +44,7 @@ fun ConsumerMainScreen(
     onReplaceFilter: (String) -> Unit,
     onRefreshTelemetry: () -> Unit,
     onBookVisit: (List<String>) -> Unit = {},
+    onOpenPurchase: (List<String>) -> Unit = {},
     onOpenSettings: () -> Unit = {},
 ) {
 
@@ -103,6 +104,7 @@ fun ConsumerMainScreen(
                     snapshot = snapshot,
                     preselectedFilterIds = filterCareTargetIds,
                     onBookVisit = onBookVisit,
+                    onOpenPurchase = onOpenPurchase,
                     onOpenSettings = onOpenSettings,
                 )
                 ConsumerTabItem.WATER_REPORT -> WaterReportScreen(device = snapshot.device)

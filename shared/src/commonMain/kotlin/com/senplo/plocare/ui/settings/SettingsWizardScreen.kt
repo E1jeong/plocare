@@ -55,11 +55,13 @@ fun SettingsWizardScreen(
     var draft by remember { mutableStateOf(SettingsDraft()) }
     var stepError by remember { mutableStateOf<String?>(null) }
     var synced by remember { mutableStateOf(false) }
-    val deviceNickname = remember(context.deviceId) {
-        when (context.deviceId) {
-            DashboardFixtures.KITCHEN_ID -> "우리 집 주방 정수기"
-            DashboardFixtures.OFFICE_ID -> "사무실 직수 정수기"
-            else -> context.deviceId
+    val deviceNickname = remember(context.deviceId, context.deviceNickname) {
+        context.deviceNickname.ifBlank {
+            when (context.deviceId) {
+                DashboardFixtures.KITCHEN_ID -> "우리 집 주방 정수기"
+                DashboardFixtures.OFFICE_ID -> "사무실 직수 정수기"
+                else -> context.deviceId
+            }
         }
     }
     val contextLabel = if (context.isPartnerContext) {
@@ -68,7 +70,7 @@ fun SettingsWizardScreen(
         "소비자"
     }
     val headingDetail = if (context.isPartnerContext) {
-        "고객 ${context.customerId} · 현장 기기는 이후 단계에서 연결합니다."
+        "고객 ${context.customerId} · $deviceNickname"
     } else {
         deviceNickname
     }

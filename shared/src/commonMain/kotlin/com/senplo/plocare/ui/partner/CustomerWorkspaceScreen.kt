@@ -28,7 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.senplo.plocare.domain.filter.DashboardSnapshot
+import com.senplo.plocare.domain.filter.FilterSnapshot
 import com.senplo.plocare.ui.theme.PloCareColor
+import kotlin.math.roundToInt
 
 private enum class WorkspaceAction(
     val title: String,
@@ -53,12 +56,14 @@ private enum class WorkspaceAction(
 }
 
 @Composable
-fun CustomerWorkspaceScreen(
+internal fun CustomerWorkspaceScreen(
     customerId: String,
+    visit: PartnerVisitFixture?,
+    snapshot: DashboardSnapshot?,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit = {},
+    onOpenWork: () -> Unit = {},
 ) {
-    val visit = remember(customerId) { findPartnerVisit(customerId) }
     var selectedAction by remember { mutableStateOf<WorkspaceAction?>(null) }
 
     Column(
@@ -91,18 +96,33 @@ fun CustomerWorkspaceScreen(
             Spacer(Modifier.height(6.dp))
             Text(visit.address, color = PloCareColor.TextSecondary, fontSize = 13.sp)
             Spacer(Modifier.height(4.dp))
+            val householdUrgent = snapshot != null && householdIsUrgent(snapshot) && !visit.completed
             Text(
-                text = if (visit.completed) "방문 완료" else "오늘 ${visit.time} · ${visit.status}",
-                color = if (visit.urgent) PloCareColor.StatusAlert else PloCareColor.VividCyan,
+                text = when {
+                    visit.completed -> "방문 완료"
+                    householdUrgent -> "오늘 ${visit.time} · 긴급"
+                    else -> "오늘 ${visit.time} · 예정"
+                },
+                color = if (householdUrgent) PloCareColor.StatusAlert else PloCareColor.VividCyan,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
             )
+            if (snapshot?.device != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(snapshot.device.nickname, color = PloCareColor.TextTertiary, fontSize = 12.sp)
+            }
             Spacer(Modifier.height(18.dp))
             Text("필터 소진 상태", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
             WorkspaceCard {
-                visit.filterStatuses.forEach { filter ->
-                    FilterStatusRow(filter)
+                if (snapshot != null) {
+                    snapshot.filters.forEach { filter ->
+                        FilterSnapshotRow(snapshot, filter)
+                    }
+                } else {
+                    visit.filterStatuses.forEach { filter ->
+                        FilterStatusRow(filter)
+                    }
                 }
             }
             Spacer(Modifier.height(18.dp))
@@ -110,8 +130,11 @@ fun CustomerWorkspaceScreen(
             Spacer(Modifier.height(10.dp))
             WorkspaceAction.entries.forEach { action ->
                 WorkspaceCard(onClick = {
-                    if (action == WorkspaceAction.SETTINGS) onOpenSettings()
-                    else selectedAction = action
+                    when (action) {
+                        WorkspaceAction.SETTINGS -> onOpenSettings()
+                        WorkspaceAction.WORK -> onOpenWork()
+                        WorkspaceAction.DIAGNOSTICS -> selectedAction = action
+                    }
                 }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -134,6 +157,27 @@ fun CustomerWorkspaceScreen(
             }
         }
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun FilterSnapshotRow(snapshot: DashboardSnapshot, filter: FilterSnapshot) {
+    val percent = filter.exhaustionPercent.roundToInt()
+    val label = partnerFilterLabel(snapshot, filter)
+    val accent = when {
+        percent >= 100 -> PloCareColor.StatusAlert
+        filter.showReplacementRequest -> PloCareColor.StatusWarn
+        else -> PloCareColor.StatusGood
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("${filter.stage}단 ${filter.name}", color = PloCareColor.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(label, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
+        Text("$percent%", color = accent, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
