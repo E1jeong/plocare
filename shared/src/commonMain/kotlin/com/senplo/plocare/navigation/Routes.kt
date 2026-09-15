@@ -39,6 +39,11 @@ sealed interface Route {
     ) : Route
 
     @Serializable
+    data class SensorDiagnostics(
+        val customerId: String,
+    ) : Route
+
+    @Serializable
     data class DeviceSettings(
         val audience: String,
         val deviceId: String,

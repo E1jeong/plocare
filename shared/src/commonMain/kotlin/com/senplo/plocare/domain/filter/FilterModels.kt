@@ -19,6 +19,19 @@ data class VisitTicket(
     val targetFilterIds: List<String>,
 )
 
+enum class ReplacementSource {
+    SELF,
+    PARTNER,
+}
+
+data class FilterReplacementRecord(
+    val replacedOn: LocalDate,
+    val filterIds: List<String>,
+    val source: ReplacementSource,
+    val technicianMaskedName: String? = null,
+    val cumulativeL: Double,
+)
+
 data class PurifierDevice(
     val id: String,
     val nickname: String,
@@ -30,6 +43,7 @@ data class PurifierDevice(
     val lastTelemetryAt: Instant,
     val filters: List<FilterCartridge>,
     val visitTicket: VisitTicket? = null,
+    val replacementHistory: List<FilterReplacementRecord> = emptyList(),
 )
 
 fun PurifierDevice.withSelfReplaced(filterId: String): PurifierDevice =

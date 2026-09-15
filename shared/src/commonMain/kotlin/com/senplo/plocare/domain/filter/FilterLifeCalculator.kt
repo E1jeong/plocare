@@ -1,6 +1,7 @@
 package com.senplo.plocare.domain.filter
 
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.round
 
@@ -17,6 +18,14 @@ object FilterLifeCalculator {
     const val KV_CALIBRATION_MAX = 0.030
     const val FLOW_TEST_MIN_ML = 500.0
     const val FLOW_TEST_MAX_ML = 2_000.0
+    const val BOTTLE_LITERS = 2.0
+    const val PLASTIC_KG_PER_BOTTLE = 0.025
+
+    fun bottlesSaved(totalCumulativeL: Double): Int =
+        floor(max(0.0, totalCumulativeL) / BOTTLE_LITERS).toInt()
+
+    fun plasticSavedKg(totalCumulativeL: Double): Double =
+        bottlesSaved(totalCumulativeL) * PLASTIC_KG_PER_BOTTLE
 
     fun dailyAverage(recentDailyUsageL: List<Double>): Double {
         if (recentDailyUsageL.isEmpty()) return MIN_DAILY_AVG_L

@@ -27,11 +27,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import com.senplo.plocare.domain.filter.PurifierDevice
 import com.senplo.plocare.domain.filter.buildWaterReportChart
+import com.senplo.plocare.domain.filter.buildWaterReportEco
+import com.senplo.plocare.domain.filter.buildWaterReportHistory
+import com.senplo.plocare.domain.filter.formatWaterReportDecimal
+import com.senplo.plocare.domain.filter.waterReportHistoryBoundary
+import com.senplo.plocare.domain.filter.waterReportHistoryEmptyCopy
 import com.senplo.plocare.ui.consumer.ConsumerCard
 import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
-import kotlin.math.floor
 import kotlin.math.round
 
 private fun groupedInt(value: Int): String {
@@ -40,17 +44,13 @@ private fun groupedInt(value: Int): String {
     return sign + digits.reversed().chunked(3).joinToString(",").reversed()
 }
 
-private fun formatOneDecimal(value: Double): String {
-    val tenths = round(value * 10.0).toInt()
-    return if (tenths % 10 == 0) (tenths / 10).toString() else "${tenths / 10}.${tenths % 10}"
-}
-
 @Composable
 fun WaterReportScreen(device: PurifierDevice) {
     val lifetimeLiters = round(device.totalCumulativeL).toInt()
-    val savedBottles = floor(lifetimeLiters / 2.0).toInt()
     val chart = buildWaterReportChart(device)
-    val averageLabel = "14일 평균 ${formatOneDecimal(chart.averageL)} L"
+    val eco = buildWaterReportEco(device)
+    val history = buildWaterReportHistory(device)
+    val averageLabel = "14일 평균 ${formatWaterReportDecimal(chart.averageL)} L"
 
     Column(
         modifier = Modifier
@@ -65,7 +65,7 @@ fun WaterReportScreen(device: PurifierDevice) {
         Spacer(Modifier.height(18.dp))
         ConsumerCard(modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                Metric("오늘", "${formatOneDecimal(chart.todayL)} L", Modifier.weight(1f), highlight = true)
+                Metric("오늘", "${formatWaterReportDecimal(chart.todayL)} L", Modifier.weight(1f), highlight = true)
                 Metric(
                     if (chart.periodDays == 0) "기간 누적" else "${chart.periodDays}일 누적",
                     "${groupedInt(round(chart.periodSumL).toInt())} L",
@@ -90,23 +90,35 @@ fun WaterReportScreen(device: PurifierDevice) {
         ConsumerSectionTitle(title = "환경 절감 효과")
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ImpactCard("♻", "2 L 생수병", "${savedBottles}개", Modifier.weight(1f))
-            ImpactCard("🌿", "플라스틱 절감", "약 60.3 kg", Modifier.weight(1f))
+            ImpactCard("♻", "2 L 생수병", "${eco.bottlesSaved}개", Modifier.weight(1f))
+            ImpactCard("🌿", "플라스틱 절감", "약 ${formatWaterReportDecimal(eco.plasticKg)} kg", Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         ConsumerCard(modifier = Modifier.fillMaxWidth()) {
             Text("탄소 배출 절감 추정", color = PloCareColor.TextSecondary, fontSize = 11.sp)
             Spacer(Modifier.height(4.dp))
-            Text("정수 생활로 만든 작은 변화가 쌓이고 있어요", color = PloCareColor.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(eco.carbonDetail, color = PloCareColor.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
 
         Spacer(Modifier.height(22.dp))
         ConsumerSectionTitle(title = "필터 교체 이력")
         Spacer(Modifier.height(10.dp))
         ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-            HistoryItem("2026.08.12", "1단 세디먼트 카본", "직접 교체 · 누적 4,320 L", active = true)
-            HistoryItem("2026.03.15", "1단 세디먼트 · 2단 프리카본", "PloCare 파트너 김*수 · 누적 3,120 L")
-            HistoryItem("2025.11.02", "4단 포스트 실버 항균", "직접 교체 · 누적 1,940 L", last = true)
+            if (history.isEmpty()) {
+                Text(waterReportHistoryEmptyCopy(), color = PloCareColor.TextSecondary, fontSize = 13.sp)
+            } else {
+                history.forEachIndexed { index, item ->
+                    HistoryItem(
+                        date = item.dateLabel,
+                        title = item.title,
+                        detail = item.detail,
+                        active = index == 0,
+                        last = index == history.lastIndex,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(waterReportHistoryBoundary(), color = PloCareColor.TextTertiary, fontSize = 11.sp)
+            }
         }
         Spacer(Modifier.height(16.dp))
     }

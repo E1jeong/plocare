@@ -13,6 +13,16 @@ import kotlin.test.assertTrue
 class FilterLifeCalculatorTest {
 
     @Test
+    fun bottlesAndPlasticFollowLifetimeFixtureFormula() {
+        assertEquals(2_410, FilterLifeCalculator.bottlesSaved(4_820.0))
+        assertEquals(60.25, FilterLifeCalculator.plasticSavedKg(4_820.0), 0.0001)
+        assertEquals(1_050, FilterLifeCalculator.bottlesSaved(2_100.0))
+        assertEquals(26.25, FilterLifeCalculator.plasticSavedKg(2_100.0), 0.0001)
+        assertEquals(0, FilterLifeCalculator.bottlesSaved(0.0))
+        assertEquals(0.0, FilterLifeCalculator.plasticSavedKg(-12.0), 0.0001)
+    }
+
+    @Test
     fun dailyAverageUsesFourteenDayWindowAndFloor() {
         assertEquals(1.0, FilterLifeCalculator.dailyAverage(emptyList()))
         assertEquals(1.0, FilterLifeCalculator.dailyAverage(listOf(0.0, 0.2)))

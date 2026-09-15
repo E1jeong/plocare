@@ -16,6 +16,7 @@ import com.senplo.plocare.domain.filter.buildDashboardSnapshot
 import com.senplo.plocare.ui.partner.CustomerWorkspaceScreen
 import com.senplo.plocare.ui.partner.PartnerMainScreen
 import com.senplo.plocare.ui.partner.PartnerSession
+import com.senplo.plocare.ui.partner.SensorDiagnosticsScreen
 import com.senplo.plocare.ui.partner.WorkInformationScreen
 import com.senplo.plocare.ui.partner.findPartnerVisit
 import com.senplo.plocare.ui.partner.partnerVisitViews
@@ -82,6 +83,28 @@ fun NavGraphBuilder.partnerGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
+                onOpenDiagnostics = {
+                    navController.navigate(Route.SensorDiagnostics(route.customerId)) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+    }
+
+    composable<Route.SensorDiagnostics> { entry ->
+        val route = entry.toRoute<Route.SensorDiagnostics>()
+        val parent = navController.getBackStackEntry<Route.PartnerMain>()
+        val session = partnerSession(parent)
+        val visits by session.visits.collectAsState()
+        val now by session.now.collectAsState()
+        PloCareTheme(audience = AppAudience.PARTNER) {
+            SensorDiagnosticsScreen(
+                visit = findPartnerVisit(route.customerId, visits),
+                snapshot = session.workspaceSnapshot(route.customerId),
+                now = now,
+                onBack = { navController.popBackStack() },
+                onConfirmed = { navController.popBackStack() },
             )
         }
     }

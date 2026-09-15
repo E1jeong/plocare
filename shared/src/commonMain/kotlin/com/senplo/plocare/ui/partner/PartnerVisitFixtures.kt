@@ -108,6 +108,7 @@ internal fun partnerDevices(now: Instant, timeZone: TimeZone): List<PurifierDevi
             nickname = "아차산 정수기",
             filters = kitchen.filters.map { cartridge -> cartridge.copy(id = "c2048-${cartridge.stage}") },
             visitTicket = null,
+            replacementHistory = emptyList(),
         ),
         office,
         kitchen.copy(
@@ -115,6 +116,7 @@ internal fun partnerDevices(now: Instant, timeZone: TimeZone): List<PurifierDevi
             nickname = "능동 정수기",
             filters = kitchen.filters.map { cartridge -> cartridge.copy(id = "c4096-${cartridge.stage}") },
             visitTicket = null,
+            replacementHistory = emptyList(),
         ),
     )
 }

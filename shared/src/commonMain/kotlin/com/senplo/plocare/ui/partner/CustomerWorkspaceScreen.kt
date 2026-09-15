@@ -19,10 +19,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -36,22 +32,18 @@ import kotlin.math.roundToInt
 private enum class WorkspaceAction(
     val title: String,
     val caption: String,
-    val pendingMessage: String,
 ) {
     WORK(
         title = "교체 작업 기록",
         caption = "실제 장착한 필터와 완료 확인",
-        pendingMessage = "교체 작업 기록 화면은 이후 연결됩니다. 지금은 현장 콘솔 진입만 확인합니다.",
     ),
     SETTINGS(
         title = "설정 및 유량 보정",
         caption = "BLE 페어링 · 1분 유량 테스트",
-        pendingMessage = "설정 위저드는 이후 연결됩니다. 카카오맵·실기기 연동은 포함하지 않습니다.",
     ),
     DIAGNOSTICS(
         title = "센서·하드웨어 점검",
         caption = "클램프, 누수, 통신 상태 확인",
-        pendingMessage = "점검 화면은 이후 연결됩니다. 실시간 센서 값은 표시하지 않습니다.",
     ),
 }
 
@@ -63,9 +55,8 @@ internal fun CustomerWorkspaceScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit = {},
     onOpenWork: () -> Unit = {},
+    onOpenDiagnostics: () -> Unit = {},
 ) {
-    var selectedAction by remember { mutableStateOf<WorkspaceAction?>(null) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -133,7 +124,7 @@ internal fun CustomerWorkspaceScreen(
                     when (action) {
                         WorkspaceAction.SETTINGS -> onOpenSettings()
                         WorkspaceAction.WORK -> onOpenWork()
-                        WorkspaceAction.DIAGNOSTICS -> selectedAction = action
+                        WorkspaceAction.DIAGNOSTICS -> onOpenDiagnostics()
                     }
                 }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -146,14 +137,6 @@ internal fun CustomerWorkspaceScreen(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-            }
-            selectedAction?.let { action ->
-                Spacer(Modifier.height(8.dp))
-                WorkspaceCard {
-                    Text(action.title, color = PloCareColor.AquaTeal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(6.dp))
-                    Text(action.pendingMessage, color = PloCareColor.TextSecondary, fontSize = 13.sp)
-                }
             }
         }
         Spacer(Modifier.height(24.dp))

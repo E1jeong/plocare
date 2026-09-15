@@ -82,6 +82,27 @@ object DashboardFixtures {
                 technicianMaskedName = "김*수",
                 targetFilterIds = listOf("kitchen-1", "kitchen-2"),
             ),
+            replacementHistory = listOf(
+                FilterReplacementRecord(
+                    replacedOn = LocalDate(2026, 8, 12),
+                    filterIds = listOf("kitchen-1"),
+                    source = ReplacementSource.SELF,
+                    cumulativeL = 4_320.0,
+                ),
+                FilterReplacementRecord(
+                    replacedOn = LocalDate(2026, 3, 15),
+                    filterIds = listOf("kitchen-1", "kitchen-2"),
+                    source = ReplacementSource.PARTNER,
+                    technicianMaskedName = "김*수",
+                    cumulativeL = 3_120.0,
+                ),
+                FilterReplacementRecord(
+                    replacedOn = LocalDate(2025, 11, 2),
+                    filterIds = listOf("kitchen-4"),
+                    source = ReplacementSource.SELF,
+                    cumulativeL = 1_940.0,
+                ),
+            ),
         )
     }
 
