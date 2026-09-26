@@ -1,17 +1,13 @@
 package com.senplo.plocare.ui.partner
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -35,6 +31,8 @@ internal fun WorkDashboardTab(
     val scheduled = openViews.count { !it.urgent }
     val urgent = openViews.count { it.urgent }
     val done = visitViews.count { it.completed }
+    val required = inventoryRequirements(visitViews)
+    val workMinutes = required.values.sum() * 10
     PartnerPage("좋은 아침이에요, 김파트너님", "담당 지역 · 서울 성동구 / 광진구") {
         SectionTitle("오늘의 업무 요약", "연결된 방문 기준")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -43,7 +41,7 @@ internal fun WorkDashboardTab(
             SummaryMetric("완료", "${done}건", PloCareColor.StatusGood, Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
-        InfoStrip("예상 이동 + 작업 시간", "4시간 10분")
+        InfoStrip("예상 작업 시간", "${workMinutes}분 · 이동 시간 미연동")
 
         SectionTitle("다음 방문", "소진율 100% 초과 고객부터 현장 화면에 들어갑니다")
         if (nextVisit == null) {
@@ -66,27 +64,17 @@ internal fun WorkDashboardTab(
             }
         }
 
-        SectionTitle("추천 방문 경로", "긴급도와 이동 시간을 반영했어요")
+        SectionTitle("방문 경로", "이동 경로 연동 준비 중")
         PartnerCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("성수동 1가", color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
-                RouteConnector("18분")
-                Text("자양동", color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
-                RouteConnector("12분")
-                Text("구의동", color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallAction("경로 지도", Modifier.weight(1f))
-                SmallAction("순서 조정", Modifier.weight(1f), secondary = true)
-            }
+            Text("카카오 경로와 방문 순서는 아직 제공되지 않습니다.", color = PloCareColor.TextSecondary, fontSize = 12.sp)
         }
 
-        SectionTitle("차량 준비 재고", "오늘 방문 8건 기준 자동 합산")
+        SectionTitle("차량 준비 재고", "미완료 방문 ${openViews.size}건 기준 자동 합산")
         PartnerCard(onClick = onInventoryClick) {
-            StockSummaryRow("세디먼트", "6개")
-            StockSummaryRow("프리카본", "4개")
-            StockSummaryRow("RO 멤브레인", "1개")
+            StockSummaryRow("세디먼트", "${required[1] ?: 0}개")
+            StockSummaryRow("프리카본", "${required[2] ?: 0}개")
+            StockSummaryRow("RO 멤브레인", "${required[3] ?: 0}개")
+            StockSummaryRow("포스트카본", "${required[4] ?: 0}개")
             Spacer(Modifier.height(10.dp))
             Text("재고 관리에서 적재 확인  ›", color = PloCareColor.AquaTeal, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
@@ -101,17 +89,6 @@ private fun SummaryMetric(label: String, value: String, color: Color, modifier: 
             Spacer(Modifier.height(4.dp))
             Text(value, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
-    }
-}
-
-@Composable
-private fun RowScope.RouteConnector(duration: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-        Spacer(Modifier.width(5.dp))
-        Box(Modifier.weight(1f).height(1.dp).background(PloCareColor.SurfaceBorder))
-        Text(duration, color = PloCareColor.TextTertiary, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 3.dp))
-        Box(Modifier.weight(1f).height(1.dp).background(PloCareColor.SurfaceBorder))
-        Spacer(Modifier.width(5.dp))
     }
 }
 

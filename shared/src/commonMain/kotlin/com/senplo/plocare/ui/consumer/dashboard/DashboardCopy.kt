@@ -66,15 +66,15 @@ internal fun briefingTitle(snapshot: DashboardSnapshot): String {
         ForecastStage.COLD_START ->
             "[${snapshot.device.householdSize}인 가구 기준 예측] 일평균 ${avg} L/일 ➔ 목표일: $date ($dDay)"
         ForecastStage.MATURE ->
-            "[AI 정밀 추론 가동 중] 14일 평균 ${avg} L/일 ➔ 목표일: $date ($dDay)"
+            "[14일 사용량 기반 데모 예측] 일평균 ${avg} L/일 ➔ 목표일: $date ($dDay)"
     }
 }
 
 internal fun briefingCaption(snapshot: DashboardSnapshot): String = when (snapshot.forecastStage) {
     ForecastStage.COLD_START ->
-        "설치 초기에는 가구원 수 기준으로 예측하고, 2개월(60일) 후 실제 사용량 기반 AI 정밀 모델로 전환돼요"
+        "설치 초기 가구원 수와 로컬 예시 사용량을 바탕으로 표시한 예측입니다."
     ForecastStage.MATURE ->
-        "2개월 누적 패턴 반영 · 매일 자정(00시) 정밀 추론 완료"
+        "로컬 사용량 예시로 계산했습니다. 서버의 매일 자정 예측은 아직 연결되지 않았습니다."
 }
 
 internal fun overCapacityMessage(filter: FilterSnapshot): String {
@@ -92,7 +92,9 @@ internal fun visitWhen(ticket: VisitTicket): String {
     val date = formatKoreanMonthDay(ticket.scheduledDate)
     val weekday = formatKoreanWeekday(ticket.scheduledDate)
     val minute = ticket.minute.toString().padStart(2, '0')
-    return "${date}(${weekday}) ${ticket.hour}:${minute}"
+    val start = "${ticket.hour}:${minute}"
+    val time = ticket.windowEndHour?.let { "$start–$it:00" } ?: start
+    return "${date}(${weekday}) $time"
 }
 
 internal fun visitTargets(ticket: VisitTicket, filters: List<FilterSnapshot>): String {

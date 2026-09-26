@@ -65,7 +65,7 @@ fun waterReportCarbonDetail(plasticKg: Double): String =
     "플라스틱 약 ${formatWaterReportDecimal(plasticKg)} kg 절감 기준 로컬 추정입니다. 탄소 kg은 서버에서 계산하지 않습니다."
 
 fun waterReportHistoryBoundary(): String =
-    "로컬 fixture 이력입니다. 서버에서 불러오지 않았습니다."
+    "이 기기의 로컬 이력입니다. 서버에서 불러오지 않았습니다."
 
 fun waterReportHistoryEmptyCopy(): String =
     "로컬 이력이 없습니다. 서버에서 불러오지 않았습니다."

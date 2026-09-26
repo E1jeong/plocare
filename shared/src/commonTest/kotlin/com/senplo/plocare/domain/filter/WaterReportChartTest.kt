@@ -91,7 +91,7 @@ class WaterReportChartTest {
         assertEquals("2025.11.02", history[2].dateLabel)
         assertEquals("4단 포스트 실버 항균", history[2].title)
         val boundary = waterReportHistoryBoundary()
-        assertTrue(boundary.contains("로컬 fixture"))
+        assertTrue(boundary.contains("로컬 이력"))
         assertTrue(boundary.contains("서버에서 불러오지 않았습니다"))
         assertFalse(boundary.contains("서버에서 불러왔습니다"))
     }

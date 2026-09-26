@@ -3,6 +3,9 @@ package com.senplo.plocare.ui.consumer
 import androidx.lifecycle.SavedStateHandle
 import com.senplo.plocare.domain.filter.DashboardFixtures
 import com.senplo.plocare.navigation.CONSUMER_DEVICE_ID_KEY
+import com.senplo.plocare.ui.consumer.filtercare.VisitRequestDraft
+import com.senplo.plocare.ui.consumer.filtercare.VisitTimeWindow
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
@@ -47,5 +50,31 @@ class ConsumerDeviceSessionTest {
         val handle = SavedStateHandle(mapOf(CONSUMER_DEVICE_ID_KEY to "missing"))
         val session = ConsumerDeviceSession(handle, timeZone, now)
         assertEquals(DashboardFixtures.KITCHEN_ID, session.selectedDevice().id)
+    }
+
+    @Test
+    fun visitRequestKeepsScheduleAndContactOnSelectedDevice() {
+        val session = ConsumerDeviceSession(SavedStateHandle(), timeZone, now)
+        session.select(DashboardFixtures.OFFICE_ID)
+
+        session.requestVisit(
+            VisitRequestDraft(
+                contact = "010-1234-5678",
+                address = "서울 광진구 아차산로 42",
+                selectedFilterIds = setOf("office-1"),
+                date = LocalDate(2026, 9, 28),
+                window = VisitTimeWindow.AFTERNOON,
+                notes = "주차장 이용",
+            ),
+        )
+
+        val ticket = session.selectedDevice().visitTicket!!
+        assertEquals(14, ticket.hour)
+        assertEquals(16, ticket.windowEndHour)
+        assertEquals("010-1234-5678", ticket.contact)
+        assertEquals("서울 광진구 아차산로 42", ticket.address)
+        assertEquals("주차장 이용", ticket.notes)
+        assertEquals(listOf("office-1"), ticket.targetFilterIds)
+        assertEquals(null, session.repository.device(DashboardFixtures.KITCHEN_ID)!!.visitTicket?.address)
     }
 }

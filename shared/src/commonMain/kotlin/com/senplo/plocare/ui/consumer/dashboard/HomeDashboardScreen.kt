@@ -45,6 +45,7 @@ import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.FilterSnapshot
 import com.senplo.plocare.domain.filter.ForecastStage
 import com.senplo.plocare.domain.filter.PurifierDevice
+import com.senplo.plocare.ui.consumer.DeviceNicknameDialog
 import com.senplo.plocare.ui.theme.PloCareColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,6 +59,7 @@ fun HomeDashboardScreen(
     now: Instant,
     onSelectDevice: (String) -> Unit,
     onReplaceFilter: (String) -> Unit,
+    onRenameDevice: (String) -> Unit,
     onRefreshTelemetry: () -> Unit,
     onRequestReplacement: (filterIds: List<String>) -> Unit,
     onOpenDeviceSettings: () -> Unit,
@@ -66,6 +68,7 @@ fun HomeDashboardScreen(
     val selected = snapshot.device
     var isRefreshing by remember { mutableStateOf(false) }
     var pendingSelfReplace by remember { mutableStateOf<FilterSnapshot?>(null) }
+    var editingNickname by remember { mutableStateOf(false) }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -90,6 +93,7 @@ fun HomeDashboardScreen(
                 selected = selected,
                 syncText = syncLabel(now - selected.lastTelemetryAt),
                 onSelectDevice = onSelectDevice,
+                onEditNickname = { editingNickname = true },
                 onOpenNotifications = {},
                 onOpenDeviceSettings = onOpenDeviceSettings,
             )
@@ -140,6 +144,9 @@ fun HomeDashboardScreen(
                     whenLabel = visitWhen(ticket),
                     technician = ticket.technicianMaskedName,
                     targets = visitTargets(ticket, snapshot.filters),
+                    requestDetails = if (ticket.technicianMaskedName == null) {
+                        listOfNotNull(ticket.address, ticket.contact, ticket.notes?.takeIf { it.isNotBlank() })
+                    } else emptyList(),
                     onReview = { onRequestReplacement(ticket.targetFilterIds) },
                 )
             }
@@ -183,6 +190,12 @@ fun HomeDashboardScreen(
             },
         )
     }
+    if (editingNickname) {
+        DeviceNicknameDialog(selected.nickname, onDismiss = { editingNickname = false }) {
+            onRenameDevice(it)
+            editingNickname = false
+        }
+    }
 }
 
 @Composable
@@ -191,6 +204,7 @@ private fun DashboardHeader(
     selected: PurifierDevice,
     syncText: String,
     onSelectDevice: (String) -> Unit,
+    onEditNickname: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenDeviceSettings: () -> Unit,
 ) {
@@ -234,6 +248,10 @@ private fun DashboardHeader(
                             },
                         )
                     }
+                    DropdownMenuItem(
+                        text = { Text("닉네임 편집") },
+                        onClick = { expanded = false; onEditNickname() },
+                    )
                 }
             }
             Text(
@@ -338,6 +356,7 @@ private fun VisitTicketCard(
     whenLabel: String,
     technician: String?,
     targets: String,
+    requestDetails: List<String>,
     onReview: () -> Unit,
 ) {
     Column(
@@ -349,7 +368,7 @@ private fun VisitTicketCard(
             .padding(14.dp),
     ) {
         Text(
-            text = "진행 중인 방문 케어",
+            text = if (technician == null) "방문 요청 · 로컬 미리보기" else "방문 케어 예시 일정",
             color = PloCareColor.TextSecondary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
@@ -367,6 +386,10 @@ private fun VisitTicketCard(
             color = PloCareColor.TextSecondary,
             fontSize = 12.sp,
         )
+        requestDetails.forEach { detail ->
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(detail, color = PloCareColor.TextSecondary, fontSize = 12.sp)
+        }
         Spacer(modifier = Modifier.height(10.dp))
         Button(
             onClick = onReview,
@@ -375,7 +398,7 @@ private fun VisitTicketCard(
             shape = RoundedCornerShape(10.dp),
         ) {
             Text(
-                text = "예약 확인 / 변경",
+                text = "필터 관리로",
                 color = PloCareColor.BgDeep,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,

@@ -72,7 +72,8 @@ class WorkInformationFormTest {
         val stage3Before = kitchenBefore.filters.single { it.id == "kitchen-3" }.baselineL
         val officeBefore = session.repository.device(DashboardFixtures.OFFICE_ID)!!
 
-        assertTrue(session.completeWork("C-1024", setOf("kitchen-1", "kitchen-2")))
+        val report = validDraft().copy(barcode = "SKU-123", note = "수압 정상")
+        assertTrue(session.completeWork("C-1024", report))
 
         val kitchen = session.repository.device(DashboardFixtures.KITCHEN_ID)!!
         val office = session.repository.device(DashboardFixtures.OFFICE_ID)!!
@@ -83,7 +84,8 @@ class WorkInformationFormTest {
         assertEquals(stage3Before, kitchen.filters.single { it.id == "kitchen-3" }.baselineL)
         assertEquals(kitchenBefore.totalCumulativeL, kitchen.totalCumulativeL)
         assertEquals(officeBefore.filters.map { it.baselineL }, office.filters.map { it.baselineL })
-        assertFalse(session.completeWork("C-1024", setOf("kitchen-1", "kitchen-2")))
+        assertEquals(report, session.workReports.value["C-1024"])
+        assertFalse(session.completeWork("C-1024", report))
         assertEquals(stage3Before, session.repository.device(DashboardFixtures.KITCHEN_ID)!!.filters.single { it.id == "kitchen-3" }.baselineL)
     }
 

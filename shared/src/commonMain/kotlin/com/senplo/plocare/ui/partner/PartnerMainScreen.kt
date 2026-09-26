@@ -31,6 +31,10 @@ import plocare.shared.generated.resources.nav_partner_visits
 internal fun PartnerMainScreen(
     currentTab: PartnerTab = PartnerTab.WORK,
     visitViews: List<PartnerVisitView> = emptyList(),
+    loadedStock: Map<Int, Int> = emptyMap(),
+    loadedConfirmed: Boolean = false,
+    onAdjustStock: (Int, Int) -> Unit = { _, _ -> },
+    onToggleLoadedConfirmation: () -> Unit = {},
     onTabChange: (PartnerTab) -> Unit = {},
     onOpenCustomer: (String) -> Unit = {},
 ) {
@@ -80,7 +84,13 @@ internal fun PartnerMainScreen(
                 )
                 PartnerTab.VISITS -> VisitManagementTab(visitViews = visitViews, onOpenCustomer = onOpenCustomer)
                 PartnerTab.CUSTOMERS -> CustomerSearchTab(visitViews = visitViews, onOpenCustomer = onOpenCustomer)
-                PartnerTab.INVENTORY -> InventoryTab()
+                PartnerTab.INVENTORY -> InventoryTab(
+                    visitViews,
+                    loadedStock,
+                    loadedConfirmed,
+                    onAdjustStock,
+                    onToggleLoadedConfirmation,
+                )
                 PartnerTab.MY -> PartnerMyPageTab()
             }
         }

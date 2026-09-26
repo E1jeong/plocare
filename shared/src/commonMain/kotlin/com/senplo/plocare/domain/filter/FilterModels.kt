@@ -17,6 +17,10 @@ data class VisitTicket(
     val minute: Int,
     val technicianMaskedName: String?,
     val targetFilterIds: List<String>,
+    val windowEndHour: Int? = null,
+    val contact: String? = null,
+    val address: String? = null,
+    val notes: String? = null,
 )
 
 enum class ReplacementSource {

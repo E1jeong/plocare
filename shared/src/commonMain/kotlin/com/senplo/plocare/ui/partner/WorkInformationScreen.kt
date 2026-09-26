@@ -49,8 +49,9 @@ import kotlin.math.roundToInt
 internal fun WorkInformationScreen(
     visit: PartnerVisitFixture?,
     snapshot: DashboardSnapshot?,
+    completedReport: WorkInformationDraft?,
     onBack: () -> Unit,
-    onConfirmed: (Set<String>) -> Unit,
+    onConfirmed: (WorkInformationDraft) -> Unit,
 ) {
     val device = snapshot?.device
     val initialSelected = remember(visit, snapshot) {
@@ -67,6 +68,7 @@ internal fun WorkInformationScreen(
     var commsVerified by remember { mutableStateOf(false) }
     var formError by remember { mutableStateOf<String?>(null) }
     var confirming by remember { mutableStateOf(false) }
+    var pendingDraft by remember { mutableStateOf<WorkInformationDraft?>(null) }
 
     Column(
         modifier = Modifier
@@ -104,6 +106,16 @@ internal fun WorkInformationScreen(
                 Text("이 방문은 이미 완료되었습니다.", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 Text("기준점은 다시 갱신하지 않습니다.", color = PloCareColor.TextSecondary, fontSize = 13.sp)
+                completedReport?.let { report ->
+                    Spacer(Modifier.height(8.dp))
+                    Text("교체 유형: ${report.type?.label.orEmpty()}", color = PloCareColor.TextSecondary, fontSize = 13.sp)
+                    val names = snapshot.filters.filter { it.id in report.selectedFilterIds }
+                        .joinToString(" · ") { "${it.stage}단 ${it.name}" }
+                    Text("교체 필터: $names", color = PloCareColor.TextSecondary, fontSize = 13.sp)
+                    if (report.barcode.isNotBlank()) Text("바코드: ${report.barcode}", color = PloCareColor.TextSecondary, fontSize = 13.sp)
+                    if (report.note.isNotBlank()) Text("메모: ${report.note}", color = PloCareColor.TextSecondary, fontSize = 13.sp)
+                    Text("센서 고정 · 누수 · 통신 확인 완료", color = PloCareColor.TextSecondary, fontSize = 13.sp)
+                }
             }
         } else if (confirming) {
             val preview = baselineSafetyPreview(device, selectedFilterIds)
@@ -152,7 +164,7 @@ internal fun WorkInformationScreen(
                         Text("취소", color = PloCareColor.TextPrimary, fontWeight = FontWeight.Bold)
                     }
                     Button(
-                        onClick = { onConfirmed(selectedFilterIds) },
+                        onClick = { pendingDraft?.let(onConfirmed) },
                         modifier = Modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
@@ -221,8 +233,7 @@ internal fun WorkInformationScreen(
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val error = validateWorkInformation(
-                        WorkInformationDraft(
+                    val draft = WorkInformationDraft(
                             selectedFilterIds = selectedFilterIds,
                             type = selectedType,
                             barcode = barcode,
@@ -230,10 +241,11 @@ internal fun WorkInformationScreen(
                             sensorClamped = sensorClamped,
                             noLeak = noLeak,
                             commsVerified = commsVerified,
-                        ),
-                    )
+                        )
+                    val error = validateWorkInformation(draft)
                     if (error == null) {
                         formError = null
+                        pendingDraft = draft
                         confirming = true
                     } else {
                         formError = error

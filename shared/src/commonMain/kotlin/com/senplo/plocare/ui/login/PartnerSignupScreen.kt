@@ -107,7 +107,7 @@ fun PartnerSignupScreen(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "관리자 승인 후 로그인할 수 있습니다.",
+                text = "가입 요청 화면 미리보기 · 서버 접수는 아직 지원하지 않습니다.",
                 color = PloCareColor.TextSecondary,
                 fontSize = 14.sp,
                 modifier = Modifier.align(Alignment.Start),
@@ -125,7 +125,7 @@ fun PartnerSignupScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = "가입 요청이 접수되었습니다.",
+                            text = "가입 요청 미리보기",
                             color = PloCareColor.TextPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
@@ -133,7 +133,7 @@ fun PartnerSignupScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "관리자 승인 후 파트너 탭에서 로그인해 주세요.",
+                            text = "서버에 접수되지 않았습니다. 관리자 승인 기능은 준비 중입니다.",
                             color = PloCareColor.TextSecondary,
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
@@ -257,7 +257,7 @@ fun PartnerSignupScreen(
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "제출 후에도 승인 전에는 로그인할 수 없습니다.",
+                            text = "현재 입력 내용은 서버에 제출되지 않습니다.",
                             color = PloCareColor.TextTertiary,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center,

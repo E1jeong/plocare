@@ -114,10 +114,10 @@ fun SettingsWizardScreen(
 
         if (synced) {
             WizardCard {
-                Text("동기화 완료", color = PloCareColor.StatusGood, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("설정 미리보기 완료", color = PloCareColor.StatusGood, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "설정값이 이 기기에 반영된 것으로 표시합니다. 실제 BLE 전송은 이후 연결됩니다.",
+                    "설정값은 기기에 전송되지 않았습니다. BLE 연결 후 동기화를 지원합니다.",
                     color = PloCareColor.TextSecondary,
                     fontSize = 13.sp,
                 )
@@ -166,7 +166,7 @@ fun SettingsWizardScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
             ) {
                 Text(
-                    text = if (draft.step == SettingsStep.SUMMARY) "저장하고 동기화" else "다음",
+                    text = if (draft.step == SettingsStep.SUMMARY) "미리보기 완료" else "다음",
                     color = PloCareColor.BgDeep,
                     fontWeight = FontWeight.Bold,
                 )
@@ -219,7 +219,7 @@ private fun BleStep(draft: SettingsDraft, onChange: (SettingsDraft) -> Unit) {
                     Text("RSSI ${device.rssi} dBm", color = PloCareColor.TextTertiary, fontSize = 11.sp)
                 }
                 Text(
-                    if (selected) "연결됨" else "연결",
+                    if (selected) "선택됨" else "선택",
                     color = if (selected) PloCareColor.StatusGood else PloCareColor.AquaTeal,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
@@ -293,13 +293,13 @@ private fun ConnectivityStep(draft: SettingsDraft, onChange: (SettingsDraft) -> 
             password = true,
         )
         Spacer(Modifier.height(8.dp))
-        Text("비밀번호는 전송 전에 암호화되며 화면에 다시 보여 주지 않습니다.", color = PloCareColor.TextTertiary, fontSize = 11.sp)
+        Text("현재 Wi-Fi 비밀번호는 기기에 전송되지 않습니다.", color = PloCareColor.TextTertiary, fontSize = 11.sp)
     } else {
         WizardCard(onClick = { onChange(draft.copy(nbiotChecked = true)) }) {
             Text("NB-IoT 모뎀 신호", color = PloCareColor.TextPrimary, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(4.dp))
             Text(
-                if (draft.nbiotChecked) "신호 확인됨 · 서버 핑 대기(스텁)" else "탭해서 신호 확인",
+                if (draft.nbiotChecked) "데모 확인 선택됨 · 실제 모뎀 미연동" else "데모 확인 선택",
                 color = if (draft.nbiotChecked) PloCareColor.StatusGood else PloCareColor.AquaTeal,
                 fontSize = 12.sp,
             )
@@ -341,7 +341,7 @@ private fun SummaryStep(draft: SettingsDraft) {
         SummaryRow("센서", draft.connectedDeviceName.orEmpty())
         SummaryRow("모델", "${draft.brand} ${draft.model} · ${draft.stageCount}단")
         SummaryRow("배관", "${draft.pipeSize} · ${draft.valveType} · ${draft.pressureKgf} kgf/cm²")
-        SummaryRow("통신", if (draft.householdMode) "${draft.wifiSsid} · 비밀번호 저장됨" else "NB-IoT")
+        SummaryRow("통신", if (draft.householdMode) "${draft.wifiSsid} · 전송 전" else "NB-IoT · 전송 전")
         SummaryRow(
             "Kv",
             if (draft.skippedFlowTest) "${formatKv(draft.previewKv())} L/s (기본)"

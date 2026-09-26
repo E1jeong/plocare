@@ -35,7 +35,7 @@ class DashboardCopyTest {
             now,
             timeZone,
         )
-        assertTrue(briefingTitle(kitchen).contains("AI 정밀 추론 가동 중"))
+        assertTrue(briefingTitle(kitchen).contains("14일 사용량 기반 데모 예측"))
         assertTrue(briefingTitle(kitchen).contains("4.2 L/일"))
         assertTrue(briefingCaption(kitchen).contains("자정"))
 

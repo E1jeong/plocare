@@ -5,11 +5,15 @@ import androidx.lifecycle.ViewModel
 import com.senplo.plocare.domain.filter.DashboardFixtures
 import com.senplo.plocare.domain.filter.PurifierDevice
 import com.senplo.plocare.domain.filter.PurifierRepository
+import com.senplo.plocare.domain.filter.ReplacementSource
+import com.senplo.plocare.domain.filter.VisitTicket
 import com.senplo.plocare.navigation.CONSUMER_DEVICE_ID_KEY
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import com.senplo.plocare.ui.consumer.filtercare.VisitRequestDraft
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -41,7 +45,31 @@ class ConsumerDeviceSession(
     }
 
     fun replaceSelectedFilter(filterId: String) {
-        repository.replaceFilter(selectedDevice().id, filterId)
+        repository.recordReplacement(
+            selectedDevice().id,
+            listOf(filterId),
+            Clock.System.now().toLocalDateTime(timeZone).date,
+            ReplacementSource.SELF,
+        )
+    }
+
+    internal fun requestVisit(draft: VisitRequestDraft) {
+        val date = requireNotNull(draft.date)
+        val window = requireNotNull(draft.window)
+        repository.requestVisit(
+            selectedDevice().id,
+            VisitTicket(
+                date, window.startHour, 0, null, draft.selectedFilterIds.toList(),
+                windowEndHour = window.endHour,
+                contact = draft.contact.trim(),
+                address = draft.address.trim(),
+                notes = draft.notes.trim(),
+            ),
+        )
+    }
+
+    fun renameSelectedDevice(nickname: String) {
+        repository.renameDevice(selectedDevice().id, nickname)
     }
 
     fun refreshSelectedTelemetry(at: Instant = Clock.System.now()) {

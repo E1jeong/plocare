@@ -7,10 +7,10 @@ import kotlinx.datetime.plus
 
 internal const val DEFAULT_VISIT_ADDRESS = "서울 성동구 성수일로 10"
 
-internal enum class VisitTimeWindow(val label: String) {
-    MORNING("10:00–12:00"),
-    AFTERNOON("14:00–16:00"),
-    EVENING("16:00–18:00"),
+internal enum class VisitTimeWindow(val label: String, val startHour: Int, val endHour: Int) {
+    MORNING("10:00–12:00", 10, 12),
+    AFTERNOON("14:00–16:00", 14, 16),
+    EVENING("16:00–18:00", 16, 18),
 }
 
 internal data class VisitRequestDraft(

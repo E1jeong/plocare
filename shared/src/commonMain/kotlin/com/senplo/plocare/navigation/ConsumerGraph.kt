@@ -52,6 +52,7 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                 now = now,
                 onSelectDevice = session::select,
                 onReplaceFilter = session::replaceSelectedFilter,
+                onRenameDevice = session::renameSelectedDevice,
                 onRefreshTelemetry = { session.refreshSelectedTelemetry() },
                 onBookVisit = { filterIds ->
                     navController.navigate(Route.VisitRequest(encodeVisitFilterIds(filterIds))) {
@@ -83,12 +84,11 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
             snapshot = session.dashboardSnapshot(),
             preselectedFilterIds = decodeVisitFilterIds(route.filterIds),
             onBack = { navController.popBackStack() },
-            onSubmitted = {
-                navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.set(CONSUMER_TAB_KEY, ConsumerTabItem.DASHBOARD.name)
-                navController.popBackStack()
+            onRequested = { draft ->
+                session.requestVisit(draft)
+                parent.savedStateHandle[CONSUMER_TAB_KEY] = ConsumerTabItem.DASHBOARD.name
             },
+            onSubmitted = { navController.popBackStack() },
         )
     }
 

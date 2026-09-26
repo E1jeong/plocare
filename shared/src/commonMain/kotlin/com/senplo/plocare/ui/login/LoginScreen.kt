@@ -291,7 +291,7 @@ private fun PartnerLoginContent(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "승인된 파트너 계정으로 일정을 확인하세요.",
+            text = "파트너 화면 미리보기 · 계정 검증은 아직 연결되지 않았습니다.",
             color = PloCareColor.TextSecondary,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,

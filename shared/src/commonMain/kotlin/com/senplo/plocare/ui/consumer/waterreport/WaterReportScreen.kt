@@ -81,7 +81,7 @@ fun WaterReportScreen(device: PurifierDevice) {
         ConsumptionChart(dailyUsage = chart.dailyUsageL, average = chart.averageL, averageLabel = averageLabel)
         Spacer(Modifier.height(8.dp))
         Text(
-            "실제 14일 물 사용량을 기준으로 필터 교체 D-Day를 계산해요.",
+            "현재 표시된 14일 사용량을 기준으로 필터 교체 D-Day를 계산해요.",
             color = PloCareColor.TextTertiary,
             fontSize = 11.sp,
         )

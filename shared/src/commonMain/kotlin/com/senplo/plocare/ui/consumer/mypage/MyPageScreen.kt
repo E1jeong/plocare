@@ -2,6 +2,7 @@ package com.senplo.plocare.ui.consumer.mypage
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.ui.consumer.ConsumerCard
+import com.senplo.plocare.ui.consumer.DeviceNicknameDialog
 import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
 import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
 import com.senplo.plocare.ui.theme.PloCareColor
@@ -43,6 +45,7 @@ fun MyPageScreen(
     snapshot: DashboardSnapshot,
     now: Instant,
     onOpenSettings: () -> Unit = {},
+    onRenameDevice: (String) -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -62,7 +65,7 @@ fun MyPageScreen(
         Spacer(Modifier.height(22.dp))
         ConsumerSectionTitle(title = "내 정수기")
         Spacer(Modifier.height(10.dp))
-        DeviceCard(snapshot = snapshot, onOpenSettings = onOpenSettings)
+        DeviceCard(snapshot = snapshot, onOpenSettings = onOpenSettings, onRenameDevice = onRenameDevice)
         Spacer(Modifier.height(10.dp))
         HardwareStatusCard(snapshot = snapshot, now = now)
 
@@ -98,12 +101,10 @@ private fun ProfileCard() {
                 Text("플", color = PloCareColor.AquaTeal, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
             Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Text("플로케어 사용자", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("플로케어 데모 사용자", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(3.dp))
-                Text("user@example.com", color = PloCareColor.TextSecondary, fontSize = 12.sp)
-                Text("Google 계정으로 연결됨", color = PloCareColor.StatusGood, fontSize = 10.sp)
+                Text("계정 정보 미연동", color = PloCareColor.TextSecondary, fontSize = 12.sp)
             }
-            Text("편집", color = PloCareColor.AquaTeal, fontSize = 12.sp)
         }
     }
 }
@@ -145,8 +146,9 @@ private fun NotificationRow(title: String, description: String, checked: Boolean
 }
 
 @Composable
-private fun DeviceCard(snapshot: DashboardSnapshot, onOpenSettings: () -> Unit) {
+private fun DeviceCard(snapshot: DashboardSnapshot, onOpenSettings: () -> Unit, onRenameDevice: (String) -> Unit) {
     val device = snapshot.device
+    var editing by remember(device.id) { mutableStateOf(false) }
     ConsumerCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -154,7 +156,8 @@ private fun DeviceCard(snapshot: DashboardSnapshot, onOpenSettings: () -> Unit) 
                 Spacer(Modifier.height(3.dp))
                 Text("${device.filters.size}단계 · 가구 ${device.householdSize}인", color = PloCareColor.TextSecondary, fontSize = 12.sp)
             }
-            Text("닉네임 편집", color = PloCareColor.AquaTeal, fontSize = 11.sp)
+            Text("닉네임 편집", color = PloCareColor.AquaTeal, fontSize = 11.sp,
+                modifier = Modifier.clickable { editing = true })
         }
         Spacer(Modifier.height(12.dp))
         HorizontalDivider(color = PloCareColor.SurfaceBorder)
@@ -163,6 +166,12 @@ private fun DeviceCard(snapshot: DashboardSnapshot, onOpenSettings: () -> Unit) 
         InfoRow("센서 설치일", device.installedOn.toString())
         OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
             Text("정수기 설정 열기  ›", color = PloCareColor.AquaTeal, fontSize = 12.sp)
+        }
+    }
+    if (editing) {
+        DeviceNicknameDialog(device.nickname, onDismiss = { editing = false }) {
+            onRenameDevice(it)
+            editing = false
         }
     }
 }

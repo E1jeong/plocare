@@ -42,6 +42,7 @@ fun ConsumerMainScreen(
     now: Instant,
     onSelectDevice: (String) -> Unit,
     onReplaceFilter: (String) -> Unit,
+    onRenameDevice: (String) -> Unit,
     onRefreshTelemetry: () -> Unit,
     onBookVisit: (List<String>) -> Unit = {},
     onOpenPurchase: (List<String>) -> Unit = {},
@@ -93,6 +94,7 @@ fun ConsumerMainScreen(
                     now = now,
                     onSelectDevice = onSelectDevice,
                     onReplaceFilter = onReplaceFilter,
+                    onRenameDevice = onRenameDevice,
                     onRefreshTelemetry = onRefreshTelemetry,
                     onRequestReplacement = { filterIds ->
                         onFilterCareTargetIdsChange(filterIds)
@@ -112,6 +114,7 @@ fun ConsumerMainScreen(
                     snapshot = snapshot,
                     now = now,
                     onOpenSettings = onOpenSettings,
+                    onRenameDevice = onRenameDevice,
                 )
             }
         }

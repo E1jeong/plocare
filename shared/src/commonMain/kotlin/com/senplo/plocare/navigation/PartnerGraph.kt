@@ -35,6 +35,8 @@ fun NavGraphBuilder.partnerGraph(navController: NavHostController) {
             .getOrDefault(PartnerTab.WORK)
         val visits by session.visits.collectAsState()
         val devices by session.repository.devices.collectAsState()
+        val loadedStock by session.loadedStock.collectAsState()
+        val loadedConfirmed by session.loadedConfirmed.collectAsState()
         val now by session.now.collectAsState()
         val visitViews = remember(visits, devices, now) {
             partnerVisitViews(visits, devices, now, session.timeZone)
@@ -43,6 +45,10 @@ fun NavGraphBuilder.partnerGraph(navController: NavHostController) {
             PartnerMainScreen(
                 currentTab = currentTab,
                 visitViews = visitViews,
+                loadedStock = loadedStock,
+                loadedConfirmed = loadedConfirmed,
+                onAdjustStock = session::adjustStock,
+                onToggleLoadedConfirmation = session::toggleLoadedConfirmation,
                 onTabChange = { entry.savedStateHandle[PARTNER_TAB_KEY] = it.name },
                 onOpenCustomer = { customerId ->
                     navController.navigate(Route.CustomerWorkspace(customerId)) {
@@ -114,16 +120,19 @@ fun NavGraphBuilder.partnerGraph(navController: NavHostController) {
         val parent = navController.getBackStackEntry<Route.PartnerMain>()
         val session = partnerSession(parent)
         val visits by session.visits.collectAsState()
+        val workReports by session.workReports.collectAsState()
         PloCareTheme(audience = AppAudience.PARTNER) {
             WorkInformationScreen(
                 visit = findPartnerVisit(route.customerId, visits),
                 snapshot = session.workspaceSnapshot(route.customerId),
+                completedReport = workReports[route.customerId],
                 onBack = { navController.popBackStack() },
-                onConfirmed = { filterIds ->
-                    session.completeWork(route.customerId, filterIds)
-                    navController.getBackStackEntry<Route.PartnerMain>()
-                        .savedStateHandle[PARTNER_TAB_KEY] = PartnerTab.VISITS.name
-                    navController.popBackStack<Route.PartnerMain>(inclusive = false)
+                onConfirmed = { draft ->
+                    if (session.completeWork(route.customerId, draft)) {
+                        navController.getBackStackEntry<Route.PartnerMain>()
+                            .savedStateHandle[PARTNER_TAB_KEY] = PartnerTab.VISITS.name
+                        navController.popBackStack<Route.PartnerMain>(inclusive = false)
+                    }
                 },
             )
         }

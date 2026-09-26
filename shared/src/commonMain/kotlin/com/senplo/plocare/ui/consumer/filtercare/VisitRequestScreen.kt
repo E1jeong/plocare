@@ -48,10 +48,11 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
 @Composable
-fun VisitRequestScreen(
+internal fun VisitRequestScreen(
     snapshot: DashboardSnapshot,
     preselectedFilterIds: List<String>,
     onBack: () -> Unit,
+    onRequested: (VisitRequestDraft) -> Unit,
     onSubmitted: () -> Unit,
 ) {
     val timeZone = remember { TimeZone.currentSystemDefault() }
@@ -59,7 +60,9 @@ fun VisitRequestScreen(
     val dateOptions = remember(today) { visitDateOptions(today) }
     val initialSelected = remember(preselectedFilterIds, snapshot.filters) {
         when {
-            preselectedFilterIds.isNotEmpty() -> preselectedFilterIds.toSet()
+            preselectedFilterIds.isNotEmpty() -> preselectedFilterIds.filter { id ->
+                snapshot.filters.any { it.id == id }
+            }.toSet()
             else -> snapshot.filters.filter { it.showReplacementRequest }.map { it.id }.toSet()
         }
     }
@@ -114,7 +117,7 @@ fun VisitRequestScreen(
             if (submitted) {
                 ConsumerCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "방문 요청이 접수되었습니다.",
+                        text = "방문 요청을 앱 세션에 저장했습니다.",
                         color = PloCareColor.TextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
@@ -123,7 +126,7 @@ fun VisitRequestScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "파트너 배정 전 미리보기입니다. 서버에 저장되지 않습니다.",
+                        text = "로컬 미리보기입니다. 파트너에게 전달되거나 서버에 저장되지 않습니다.",
                         color = PloCareColor.TextSecondary,
                         fontSize = 13.sp,
                         textAlign = TextAlign.Center,
@@ -213,19 +216,18 @@ fun VisitRequestScreen(
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
-                        val error = validateVisitRequest(
-                            VisitRequestDraft(
+                        val draft = VisitRequestDraft(
                                 contact = contact,
                                 address = address,
                                 selectedFilterIds = selectedFilterIds,
                                 date = selectedDate,
                                 window = selectedWindow,
                                 notes = notes,
-                            ),
-                            today,
-                        )
+                            )
+                        val error = validateVisitRequest(draft, today)
                         if (error == null) {
                             formError = null
+                            onRequested(draft)
                             submitted = true
                         } else {
                             formError = error

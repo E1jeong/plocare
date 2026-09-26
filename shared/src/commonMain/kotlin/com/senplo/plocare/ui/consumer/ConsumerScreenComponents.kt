@@ -9,8 +9,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -48,4 +55,28 @@ internal fun ConsumerCard(
     ) {
         Column(modifier = Modifier.padding(16.dp), content = content)
     }
+}
+
+@Composable
+internal fun DeviceNicknameDialog(currentName: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+    var nickname by remember(currentName) { mutableStateOf(currentName) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("정수기 닉네임") },
+        text = {
+            OutlinedTextField(
+                value = nickname,
+                onValueChange = { if (it.length <= 30) nickname = it },
+                label = { Text("1~30자") },
+                singleLine = true,
+                isError = nickname.trim().isEmpty(),
+            )
+        },
+        confirmButton = {
+            TextButton(enabled = nickname.trim().isNotEmpty(), onClick = { onSave(nickname) }) {
+                Text("저장")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } },
+    )
 }
