@@ -4,8 +4,6 @@
 
 This is a code-navigation and safety guide, not project history. Product context, planning, data-model detail, and decisions live in the vault-relative `Dev/Project/Personal/plocare` wiki; resolve it through `_meta/routing-tables.md` or `obsidian-wiki-sync`, then follow the vault root `AGENTS.md`.
 
-Report plans and results in Korean.
-
 ## Code Map
 
 | Module | Responsibility | Orient first | Local guide |

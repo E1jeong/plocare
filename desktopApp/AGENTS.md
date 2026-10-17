@@ -5,8 +5,6 @@
 PloCare Compose Multiplatform desktop host application module (Windows, macOS, Linux).
 Houses window creation and desktop runtime lifecycle; business logic and common UI reside in `shared/`.
 
-Report plans and results in Korean.
-
 ## Orient First
 
 - Entrypoint: `desktopApp/src/main/kotlin/com/senplo/plocare/main.kt`
@@ -27,7 +25,7 @@ Report plans and results in Korean.
   ```powershell
   orca terminal create --worktree active --title "PloCare Hot Reload" --command ".\gradlew.bat :desktopApp:hotRun" --focus
   ```
-- **User Execution**: Instruct the user to use Android Studio's `desktopApp` run configuration (Run ▶) or execute `.\gradlew.bat :desktopApp:run` directly in their terminal.
+- **User Execution**: Only when the user will run the app themselves, instruct them to use Android Studio's `desktopApp` run configuration (Run ▶) or execute `.\gradlew.bat :desktopApp:run` directly in their terminal.
 
 ## Verify
 
