@@ -1,6 +1,8 @@
 package com.senplo.plocare.ui.settings
 
 import com.senplo.plocare.domain.filter.FilterLifeCalculator
+import com.senplo.plocare.scanner.ScanFrame
+import com.senplo.plocare.scanner.parseWifiQr
 
 internal enum class SettingsStep(val title: String, val caption: String) {
     BLE("BLE 페어링", "근처 PloCare 센서를 선택해 연결하세요."),
@@ -107,6 +109,32 @@ internal fun validateSettingsStep(draft: SettingsDraft): String? = when (draft.s
         }
     }
     SettingsStep.SUMMARY -> null
+}
+
+internal enum class ScanTarget(
+    val frame: ScanFrame,
+    val title: String,
+    val guide: String,
+    val manualLabel: String?,
+    val invalidMessage: String,
+) {
+    SENSOR(ScanFrame.QR, "센서 QR 스캔", "센서의 QR을 사각형 안에 맞춰 주세요.", "센서 ID", "센서 QR을 읽지 못했습니다."),
+    MODEL(ScanFrame.BARCODE, "모델 바코드 스캔", "정수기 옆면·뒷면 모델 라벨의 바코드를 비춰 주세요.", "모델명", "모델 바코드를 읽지 못했습니다."),
+    // Manual Wi-Fi entry stays on the step's own SSID/password fields.
+    WIFI(ScanFrame.QR, "Wi-Fi QR 스캔", "공유기의 Wi-Fi QR을 사각형 안에 맞춰 주세요.", null, "Wi-Fi QR이 아닙니다. 공유기 Wi-Fi QR인지 확인해 주세요."),
+}
+
+/** Applies scanned or typed text for [target]; null when the text is unusable. */
+internal fun SettingsDraft.applyScan(target: ScanTarget, raw: String): SettingsDraft? {
+    val text = raw.trim()
+    if (text.isEmpty()) return null
+    return when (target) {
+        ScanTarget.SENSOR -> copy(connectedDeviceId = text, connectedDeviceName = text)
+        ScanTarget.MODEL -> copy(model = text)
+        ScanTarget.WIFI -> parseWifiQr(text)?.let { wifi ->
+            copy(householdMode = true, wifiSsid = wifi.ssid, wifiPassword = wifi.password)
+        }
+    }
 }
 
 internal fun SettingsDraft.advance(): SettingsDraft {

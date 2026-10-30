@@ -17,7 +17,8 @@ This is a code-navigation and safety guide, not project history. Product context
 ## Change Gates
 
 - Keep business logic, filter calculation algorithms, and shared UI in `shared/`; platform applications remain thin hosts.
-- Maintain platform-specific features (BLE, Kakao Map, Wi-Fi provisioning) behind `expect`/`actual` abstractions or dedicated interfaces.
+- Maintain platform-specific features (BLE, Kakao Map, camera code scanning, Wi-Fi provisioning) behind `expect`/`actual` abstractions or dedicated interfaces; platforms without a native implementation render the caller's fallback instead of failing.
+- Keep the Kakao native app key and other credentials out of tracked files; the Android build reads `kakao.nativeAppKey` from the untracked root `local.properties`.
 - Preserve separation between customer visibility flows and manager/technician service flows.
 - Keep consumer and partner palettes in `shared/src/commonMain/kotlin/com/senplo/plocare/ui/theme/` and switch them through `AppAudience`; screens read `PloCareColor` tokens.
 

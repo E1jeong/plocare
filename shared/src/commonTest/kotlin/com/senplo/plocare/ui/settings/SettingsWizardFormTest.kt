@@ -4,6 +4,7 @@ import com.senplo.plocare.navigation.Route
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -55,5 +56,30 @@ class SettingsWizardFormTest {
         )
         assertEquals("수압은 0.5~5.0 kgf/cm² 범위입니다.", validateSettingsStep(draft))
         assertNull(validateSettingsStep(draft.copy(pressureKgf = "2.0")))
+    }
+
+    @Test
+    fun scanResultsFillSensorModelAndWifi() {
+        val draft = SettingsDraft()
+
+        val sensor = assertNotNull(draft.applyScan(ScanTarget.SENSOR, "  PLC-SN-0042 "))
+        assertEquals("PLC-SN-0042", sensor.connectedDeviceId)
+        assertNull(validateSettingsStep(sensor))
+
+        assertEquals("CHP-7300R", draft.applyScan(ScanTarget.MODEL, "CHP-7300R")?.model)
+
+        val wifi = assertNotNull(draft.copy(householdMode = false).applyScan(ScanTarget.WIFI, "WIFI:T:WPA;S:PloCare_5G;P:secret123;;"))
+        assertTrue(wifi.householdMode)
+        assertEquals("PloCare_5G", wifi.wifiSsid)
+        assertEquals("secret123", wifi.wifiPassword)
+        assertNull(validateSettingsStep(wifi.copy(step = SettingsStep.CONNECTIVITY)))
+    }
+
+    @Test
+    fun unusableScanTextLeavesDraftUnchanged() {
+        val draft = SettingsDraft()
+        assertNull(draft.applyScan(ScanTarget.SENSOR, "   "))
+        assertNull(draft.applyScan(ScanTarget.MODEL, ""))
+        assertNull(draft.applyScan(ScanTarget.WIFI, "https://example.com"))
     }
 }

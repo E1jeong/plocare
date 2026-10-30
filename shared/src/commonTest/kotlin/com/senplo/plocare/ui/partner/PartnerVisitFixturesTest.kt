@@ -33,6 +33,15 @@ class PartnerVisitFixturesTest {
     }
 
     @Test
+    fun visitMarkersHaveDistinctSeoulCoordinates() {
+        partnerVisits.forEach { visit ->
+            assertTrue(visit.latitude in 37.4..37.7, "${visit.customerId} latitude")
+            assertTrue(visit.longitude in 126.8..127.2, "${visit.customerId} longitude")
+        }
+        assertEquals(partnerVisits.size, partnerVisits.map { it.latitude to it.longitude }.toSet().size)
+    }
+
+    @Test
     fun listCopyMatchesWorkspaceDeviceExhaustion() {
         val timeZone = TimeZone.of("Asia/Seoul")
         val now = Instant.parse("2026-09-10T03:00:00Z")

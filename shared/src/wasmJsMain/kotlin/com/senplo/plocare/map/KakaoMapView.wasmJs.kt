@@ -10,6 +10,7 @@ actual fun KakaoMapView(
     initialLocation: MapLocation,
     markers: List<MapLocation>,
     onMarkerClick: (MapLocation) -> Unit,
+    fallback: @Composable () -> Unit,
 ) {
-    Box(modifier)
+    Box(modifier) { fallback() }
 }

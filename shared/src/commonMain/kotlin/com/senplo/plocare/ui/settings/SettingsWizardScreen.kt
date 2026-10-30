@@ -55,6 +55,7 @@ fun SettingsWizardScreen(
     var draft by remember { mutableStateOf(SettingsDraft()) }
     var stepError by remember { mutableStateOf<String?>(null) }
     var synced by remember { mutableStateOf(false) }
+    var scanTarget by remember { mutableStateOf<ScanTarget?>(null) }
     val deviceNickname = remember(context.deviceId, context.deviceNickname) {
         context.deviceNickname.ifBlank {
             when (context.deviceId) {
@@ -137,10 +138,10 @@ fun SettingsWizardScreen(
                 Text(draft.step.caption, color = PloCareColor.TextSecondary, fontSize = 13.sp)
                 Spacer(Modifier.height(14.dp))
                 when (draft.step) {
-                    SettingsStep.BLE -> BleStep(draft) { draft = it; stepError = null }
-                    SettingsStep.MODEL -> ModelStep(draft) { draft = it; stepError = null }
+                    SettingsStep.BLE -> BleStep(draft, onScan = { scanTarget = ScanTarget.SENSOR }) { draft = it; stepError = null }
+                    SettingsStep.MODEL -> ModelStep(draft, onScan = { scanTarget = ScanTarget.MODEL }) { draft = it; stepError = null }
                     SettingsStep.HYDRAULIC -> HydraulicStep(draft) { draft = it; stepError = null }
-                    SettingsStep.CONNECTIVITY -> ConnectivityStep(draft) { draft = it; stepError = null }
+                    SettingsStep.CONNECTIVITY -> ConnectivityStep(draft, onScan = { scanTarget = ScanTarget.WIFI }) { draft = it; stepError = null }
                     SettingsStep.FLOW_TEST -> FlowTestStep(draft) { draft = it; stepError = null }
                     SettingsStep.SUMMARY -> SummaryStep(draft)
                 }
@@ -173,6 +174,24 @@ fun SettingsWizardScreen(
             }
         }
     }
+
+    scanTarget?.let { target ->
+        SettingsScanDialog(
+            target = target,
+            onCode = { code ->
+                val updated = draft.applyScan(target, code)
+                if (updated == null) {
+                    target.invalidMessage
+                } else {
+                    draft = updated
+                    stepError = null
+                    scanTarget = null
+                    null
+                }
+            },
+            onDismiss = { scanTarget = null },
+        )
+    }
 }
 
 @Composable
@@ -199,7 +218,15 @@ private fun StepMeter(current: SettingsStep) {
 }
 
 @Composable
-private fun BleStep(draft: SettingsDraft, onChange: (SettingsDraft) -> Unit) {
+private fun BleStep(draft: SettingsDraft, onScan: () -> Unit, onChange: (SettingsDraft) -> Unit) {
+    ScanButton("센서 QR 스캔", onScan)
+    if (draft.connectedDeviceId != null && stubBleDevices.none { it.id == draft.connectedDeviceId }) {
+        Spacer(Modifier.height(8.dp))
+        Text("QR로 선택됨 · ${draft.connectedDeviceName}", color = PloCareColor.StatusGood, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+    Spacer(Modifier.height(16.dp))
+    Text("QR이 안 될 때 · 목록에서 고르기", color = PloCareColor.TextSecondary, fontSize = 12.sp)
+    Spacer(Modifier.height(10.dp))
     Text("권한 안내", color = PloCareColor.TextSecondary, fontSize = 12.sp)
     Spacer(Modifier.height(6.dp))
     Text(
@@ -231,12 +258,14 @@ private fun BleStep(draft: SettingsDraft, onChange: (SettingsDraft) -> Unit) {
 }
 
 @Composable
-private fun ModelStep(draft: SettingsDraft, onChange: (SettingsDraft) -> Unit) {
+private fun ModelStep(draft: SettingsDraft, onScan: () -> Unit, onChange: (SettingsDraft) -> Unit) {
     Text("브랜드", color = PloCareColor.TextSecondary, fontSize = 12.sp)
     Spacer(Modifier.height(8.dp))
     FlowChoices(settingsBrands, draft.brand) { onChange(draft.copy(brand = it)) }
     Spacer(Modifier.height(14.dp))
     WizardField(value = draft.model, onValueChange = { onChange(draft.copy(model = it)) }, label = "모델명")
+    Spacer(Modifier.height(8.dp))
+    ScanButton("바코드로 모델 입력", onScan)
     Spacer(Modifier.height(14.dp))
     Text("필터 단수", color = PloCareColor.TextSecondary, fontSize = 12.sp)
     Spacer(Modifier.height(8.dp))
@@ -277,12 +306,14 @@ private fun HydraulicStep(draft: SettingsDraft, onChange: (SettingsDraft) -> Uni
 }
 
 @Composable
-private fun ConnectivityStep(draft: SettingsDraft, onChange: (SettingsDraft) -> Unit) {
+private fun ConnectivityStep(draft: SettingsDraft, onScan: () -> Unit, onChange: (SettingsDraft) -> Unit) {
     FlowChoices(listOf("가정용 Wi-Fi", "상업용 NB-IoT"), if (draft.householdMode) "가정용 Wi-Fi" else "상업용 NB-IoT") {
         onChange(draft.copy(householdMode = it.startsWith("가정용")))
     }
     Spacer(Modifier.height(14.dp))
     if (draft.householdMode) {
+        ScanButton("공유기 Wi-Fi QR 스캔", onScan)
+        Spacer(Modifier.height(12.dp))
         WizardField(value = draft.wifiSsid, onValueChange = { onChange(draft.copy(wifiSsid = it)) }, label = "Wi-Fi 이름")
         Spacer(Modifier.height(10.dp))
         WizardField(
@@ -347,6 +378,13 @@ private fun SummaryStep(draft: SettingsDraft) {
             if (draft.skippedFlowTest) "${formatKv(draft.previewKv())} L/s (기본)"
             else "${formatKv(draft.calibratedKv())} L/s (보정)",
         )
+    }
+}
+
+@Composable
+private fun ScanButton(label: String, onClick: () -> Unit) {
+    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Text(label, color = PloCareColor.AquaTeal, fontWeight = FontWeight.Bold)
     }
 }
 

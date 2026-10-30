@@ -62,6 +62,13 @@ kotlin {
 
             // Kakao Maps
             implementation(libs.kakao.maps)
+
+            // Code scanning
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.camera.camera2)
+            implementation(libs.androidx.camera.view)
+            implementation(libs.androidx.camera.mlkit.vision)
+            implementation(libs.mlkit.barcode.scanning)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

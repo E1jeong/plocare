@@ -18,7 +18,7 @@ class PloCareApp : Application() {
 
         // Initialize Kakao Map SDK
         val kakaoAppKey = getString(R.string.kakao_app_key)
-        if (kakaoAppKey != "YOUR_KAKAO_NATIVE_APP_KEY") {
+        if (kakaoAppKey.isNotBlank()) {
             KakaoMapSdk.init(this, kakaoAppKey)
         }
     }

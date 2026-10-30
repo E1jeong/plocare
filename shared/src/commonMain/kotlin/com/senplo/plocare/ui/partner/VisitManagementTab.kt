@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.senplo.plocare.map.KakaoMapView
+import com.senplo.plocare.map.MapLocation
 import com.senplo.plocare.ui.theme.PloCareColor
 
 private enum class VisitView(val title: String) { MAP("지도"), LIST("목록") }
@@ -51,7 +53,7 @@ internal fun VisitManagementTab(
         }
         Spacer(Modifier.height(16.dp))
         if (selectedView == VisitView.MAP) {
-            MapSkeleton()
+            VisitMap(visitViews, onOpenCustomer)
             Spacer(Modifier.height(12.dp))
             LegendRow()
         } else {
@@ -82,6 +84,29 @@ private fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelecte
             }
         }
     }
+}
+
+@Composable
+private fun VisitMap(visitViews: List<PartnerVisitView>, onOpenCustomer: (String) -> Unit) {
+    val markers = visitViews.map { view ->
+        MapLocation(
+            latitude = view.visit.latitude,
+            longitude = view.visit.longitude,
+            title = view.displayName,
+            id = view.customerId,
+            markerColor = when {
+                view.urgent -> PloCareColor.StatusAlert
+                view.completed -> PloCareColor.TextTertiary
+                else -> PloCareColor.DeepBlue
+            },
+        )
+    }
+    KakaoMapView(
+        modifier = Modifier.fillMaxWidth().height(238.dp).clip(RoundedCornerShape(18.dp)),
+        markers = markers,
+        onMarkerClick = { marker -> marker.id?.let(onOpenCustomer) },
+        fallback = { MapSkeleton() },
+    )
 }
 
 @Composable

@@ -1,8 +1,14 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+}
+
+// Kakao native app key stays in the untracked local.properties (kakao.nativeAppKey=...).
+val localProperties = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
 
 kotlin {
@@ -31,6 +37,7 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        resValue("string", "kakao_app_key", localProperties.getProperty("kakao.nativeAppKey", ""))
     }
     packaging {
         resources {
@@ -52,5 +59,6 @@ android {
     }
     buildFeatures {
         compose = true
+        resValues = true
     }
 }
