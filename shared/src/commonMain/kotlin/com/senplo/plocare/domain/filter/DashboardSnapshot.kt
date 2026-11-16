@@ -1,12 +1,10 @@
 package com.senplo.plocare.domain.filter
 
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 import kotlin.math.max
+import kotlin.time.Instant
 
 enum class ForecastStage {
     COLD_START,
@@ -34,9 +32,19 @@ data class FilterSnapshot(
     val excessDays: Int,
     val colorLevel: FilterColorLevel,
     val showReplacementRequest: Boolean,
+    val filterType: FilterType = FilterType.fromName(name),
+    val capacityDate: LocalDate? = if (ratedCapacityL > 0.0) estimatedDate else null,
+    val cycleExpiryDate: LocalDate? = null,
+    val effectiveDate: LocalDate = estimatedDate,
+    val effectiveRemainingDays: Int = remainingDays,
+    val replacementReason: ReplacementReason = ReplacementReason.CAPACITY,
 ) {
     val fillFraction: Float
-        get() = if (ratedCapacityL <= 0.0) 0f else (remainingL / ratedCapacityL).toFloat().coerceIn(0f, 1f)
+        get() = if (ratedCapacityL > 0.0) {
+            (remainingL / ratedCapacityL).toFloat().coerceIn(0f, 1f)
+        } else {
+            ((100.0 - exhaustionPercent) / 100.0).toFloat().coerceIn(0f, 1f)
+        }
 }
 
 data class BundleProposal(
@@ -78,16 +86,41 @@ fun buildDashboardSnapshot(
     val filters = device.filters.map { cartridge ->
         val usage = FilterLifeCalculator.filterUsageL(device.totalCumulativeL, cartridge.baselineL)
         val remaining = FilterLifeCalculator.remainingCapacityL(usage, cartridge.ratedCapacityL)
-        val remainingDays = FilterLifeCalculator.remainingDays(
+        val cycleExpiry = cartridge.effectiveCycleExpiryDate(device.installedOn)
+        val capacityDate = FilterLifeCalculator.capacityDate(
+            today = today,
             filterUsageL = usage,
             ratedCapacityL = cartridge.ratedCapacityL,
             dailyAvgL = device.dailyAvgL,
         )
+        val (effectiveDate, reason) = FilterLifeCalculator.effectiveDateAndReason(
+            today = today,
+            capacityDate = capacityDate,
+            cycleExpiryDate = cycleExpiry,
+        )
+        val effectiveDays = FilterLifeCalculator.effectiveRemainingDays(today, effectiveDate)
         val excessL = FilterLifeCalculator.excessLiters(usage, cartridge.ratedCapacityL)
-        val exhaustion = FilterLifeCalculator.exhaustionRatePercent(usage, cartridge.ratedCapacityL)
+        val exhaustion = when {
+            cartridge.hasRatedCapacity ->
+                FilterLifeCalculator.exhaustionRatePercent(usage, cartridge.ratedCapacityL)
+            cycleExpiry != null ->
+                FilterLifeCalculator.cycleExhaustionPercent(
+                    cycleStartDate = cartridge.installedOrReplacedOn ?: device.installedOn,
+                    today = today,
+                    cycleExpiryDate = cycleExpiry,
+                )
+            else -> 0.0
+        }
+        val urgent = FilterLifeCalculator.isUrgent(
+            filterUsageL = usage,
+            ratedCapacityL = cartridge.ratedCapacityL,
+            today = today,
+            cycleExpiryDate = cycleExpiry,
+        )
         val colorLevel = when {
-            remaining <= 0.0 || exhaustion >= 100.0 -> FilterColorLevel.EXHAUSTED
-            exhaustion >= FilterLifeCalculator.REPLACE_SOON_EXHAUSTION_PERCENT ->
+            urgent || exhaustion >= 100.0 -> FilterColorLevel.EXHAUSTED
+            exhaustion >= FilterLifeCalculator.REPLACE_SOON_EXHAUSTION_PERCENT ||
+                (cycleExpiry != null && effectiveDays <= FilterLifeCalculator.BUNDLE_PROXIMITY_DAYS) ->
                 FilterColorLevel.REPLACE_SOON
             else -> FilterColorLevel.SAFE
         }
@@ -100,41 +133,47 @@ fun buildDashboardSnapshot(
             usageL = usage,
             remainingL = remaining,
             exhaustionPercent = exhaustion,
-            remainingDays = remainingDays,
-            estimatedDate = today.plus(remainingDays, DateTimeUnit.DAY),
+            remainingDays = effectiveDays,
+            estimatedDate = effectiveDate,
             excessL = excessL,
             excessDays = FilterLifeCalculator.excessDays(excessL, device.dailyAvgL),
             colorLevel = colorLevel,
             showReplacementRequest = colorLevel != FilterColorLevel.SAFE,
+            filterType = cartridge.filterType,
+            capacityDate = capacityDate,
+            cycleExpiryDate = cycleExpiry,
+            effectiveDate = effectiveDate,
+            effectiveRemainingDays = effectiveDays,
+            replacementReason = reason,
         )
     }
 
     val clusters = FilterLifeCalculator.bundleClusters(
-        filters.map { it.id to it.remainingDays },
+        filters.map { it.id to it.effectiveRemainingDays },
     )
     val bundleFilters = clusters
         .map { ids -> filters.filter { it.id in ids } }
-        .minByOrNull { cluster -> cluster.minOf { it.remainingDays } }
+        .minByOrNull { cluster -> cluster.minOf { it.effectiveRemainingDays } }
     val bundle = bundleFilters?.let { cluster ->
-        val days = cluster.map { it.remainingDays }
+        val days = cluster.map { it.effectiveRemainingDays }
         BundleProposal(
             filterIds = cluster.map { it.id },
             stageLabels = cluster.map { "${it.stage}단" },
             names = cluster.map { it.name },
             deltaDays = (days.maxOrNull() ?: 0) - (days.minOrNull() ?: 0),
-            targetDate = cluster.minBy { it.remainingDays }.estimatedDate,
+            targetDate = cluster.minBy { it.effectiveRemainingDays }.effectiveDate,
         )
     }
 
-    val representative = filters.minByOrNull { it.remainingDays }
+    val representative = filters.minByOrNull { it.effectiveRemainingDays }
     return DashboardSnapshot(
         device = device,
         today = today,
         filters = filters,
         forecastStage = forecastStage,
         installedDayIndex = max(1, daysSinceInstall + 1),
-        representativeRemainingDays = representative?.remainingDays ?: 0,
-        representativeDate = representative?.estimatedDate ?: today,
+        representativeRemainingDays = representative?.effectiveRemainingDays ?: 0,
+        representativeDate = representative?.effectiveDate ?: today,
         sensorStale = sensorStale,
         overCapacityFilters = filters.filter { it.colorLevel == FilterColorLevel.EXHAUSTED },
         bundle = bundle,

@@ -1,6 +1,8 @@
 package com.senplo.plocare.ui.settings
 
 import com.senplo.plocare.domain.filter.FilterLifeCalculator
+import com.senplo.plocare.domain.filter.MAX_FILTER_STAGES
+import com.senplo.plocare.domain.filter.MIN_FILTER_STAGES
 import com.senplo.plocare.scanner.ScanFrame
 import com.senplo.plocare.scanner.parseWifiQr
 
@@ -76,7 +78,7 @@ internal fun validateSettingsStep(draft: SettingsDraft): String? = when (draft.s
         if (draft.connectedDeviceName.isNullOrBlank()) "연결할 센서를 선택해 주세요." else null
     SettingsStep.MODEL -> when {
         draft.brand.isBlank() || draft.model.isBlank() -> "브랜드와 모델을 입력해 주세요."
-        draft.stageCount !in 1..5 -> "필터 단수는 1~5단만 설정할 수 있습니다."
+        draft.stageCount !in MIN_FILTER_STAGES..MAX_FILTER_STAGES -> "필터 단수는 1~10단만 설정할 수 있습니다."
         else -> null
     }
     SettingsStep.HYDRAULIC -> {

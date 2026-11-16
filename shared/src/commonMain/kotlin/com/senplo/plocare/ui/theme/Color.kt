@@ -4,8 +4,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.senplo.plocare.domain.filter.FilterType
 
 data class PloCareColors(
+    // Figma Main tokens
+    val Primary: Color = Color(0xFF1F5F8B),
+    val GradientMain: Color = Color(0xFF29B8E9),
+    val GradientSecondary: Color = Color(0xFF8FD0E6),
+    val PrimaryTint: Color = Color(0xFFD6EEF6),
+    val PrimaryContainerLight: Color = Color(0xFFF2FCFF),
+    val Background: Color = Color(0xFFF7F7F8),
+    val TextMain: Color = Color(0xFF1F2927),
+
+    // Figma Greyscale 12 steps (15:181)
+    val Black100: Color = Color(0xFF171B25),
+    val Black90: Color = Color(0xFF1F2329),
+    val Black80Title: Color = Color(0xFF292D33),
+    val Black70: Color = Color(0xFF333941),
+    val Black60Body: Color = Color(0xFF505966),
+    val Black50Muted: Color = Color(0xFF898F95),
+    val Black40Ghost: Color = Color(0xFFADB2B8),
+    val Black30: Color = Color(0xFFBEC3C9),
+    val Black20: Color = Color(0xFFDCE2E5),
+    val Black10: Color = Color(0xFFE5E9F1),
+    val Black0Surface: Color = Color(0xFFF6F8FD),
+    val White: Color = Color(0xFFFFFFFF),
+
+    // Figma Filter colors (15:320)
+    val FilterSediment: Color = Color(0xFF80C15E),
+    val FilterPreCarbon: Color = Color(0xFFC9A46E),
+    val FilterPostCarbon: Color = Color(0xFF2C5ECE),
+    val FilterMembrane: Color = Color(0xFF29A2A0),
+    val FilterUnassigned: Color = Color(0xFFADB2B8),
+
+    // Legacy compatibility tokens mapped to Light Theme
     val BrandNavy: Color,
     val BgDeep: Color,
     val BgMid: Color,
@@ -26,6 +58,14 @@ data class PloCareColors(
     val StatusWarn: Color,
     val StatusAlert: Color,
 ) {
+    fun filterTypeColor(type: FilterType): Color = when (type) {
+        FilterType.SEDIMENT -> FilterSediment
+        FilterType.PRE_CARBON -> FilterPreCarbon
+        FilterType.POST_CARBON -> FilterPostCarbon
+        FilterType.MEMBRANE -> FilterMembrane
+        FilterType.COMPOSITE, FilterType.UNSPECIFIED -> FilterUnassigned
+    }
+
     fun filterStageColor(stage: Int): Color = when (stage) {
         1 -> AquaTeal
         2 -> VividCyan
@@ -36,47 +76,61 @@ data class PloCareColors(
 }
 
 val UserPloCareColors = PloCareColors(
-    BrandNavy = Color(0xFF071A2E),
-    BgDeep = Color(0xFF070B14),
-    BgMid = Color(0xFF0C162A),
-    SurfaceDark = Color(0xFF131F37),
-    SurfaceCard = Color(0xFF192644),
-    SurfaceBorder = Color(0xFF263A5E),
-    AquaTeal = Color(0xFF2DD4BF),
-    VividCyan = Color(0xFF38BDF8),
-    LuminousIce = Color(0xFFF0FDFF),
-    DeepBlue = Color(0xFF0284C7),
-    FilterStage3 = Color(0xFF818CF8),
-    FilterStage4 = Color(0xFFFBBF24),
-    FilterStage5 = Color(0xFFF472B6),
-    TextPrimary = Color(0xFFFFFFFF),
-    TextSecondary = Color(0xFF94A3B8),
-    TextTertiary = Color(0xFF64748B),
+    Primary = Color(0xFF1F5F8B),
+    GradientMain = Color(0xFF29B8E9),
+    GradientSecondary = Color(0xFF8FD0E6),
+    PrimaryTint = Color(0xFFD6EEF6),
+    PrimaryContainerLight = Color(0xFFF2FCFF),
+    Background = Color(0xFFF7F7F8),
+    TextMain = Color(0xFF1F2927),
+    BrandNavy = Color(0xFFF7F7F8),
+    BgDeep = Color(0xFFFFFFFF),
+    BgMid = Color(0xFFF2FCFF),
+    SurfaceDark = Color(0xFFFFFFFF),
+    SurfaceCard = Color(0xFFF6F8FD),
+    SurfaceBorder = Color(0xFFE5E9F1),
+    AquaTeal = Color(0xFF1F5F8B),
+    VividCyan = Color(0xFF29B8E9),
+    LuminousIce = Color(0xFFD6EEF6),
+    DeepBlue = Color(0xFF8FD0E6),
+    FilterStage3 = Color(0xFF29A2A0),
+    FilterStage4 = Color(0xFF2C5ECE),
+    FilterStage5 = Color(0xFFADB2B8),
+    TextPrimary = Color(0xFF1F2927),
+    TextSecondary = Color(0xFF505966),
+    TextTertiary = Color(0xFF898F95),
     StatusGood = Color(0xFF10B981),
     StatusWarn = Color(0xFFF59E0B),
-    StatusAlert = Color(0xFFEF4444),
+    StatusAlert = Color(0xFFFF4D4F),
 )
 
 val PartnerPloCareColors = PloCareColors(
-    BrandNavy = Color(0xFF0A1628),
-    BgDeep = Color(0xFF060A14),
-    BgMid = Color(0xFF0C1428),
-    SurfaceDark = Color(0xFF12203A),
-    SurfaceCard = Color(0xFF182848),
-    SurfaceBorder = Color(0xFF2A3F66),
-    AquaTeal = Color(0xFF60A5FA),
-    VividCyan = Color(0xFF93C5FD),
-    LuminousIce = Color(0xFFEFF6FF),
-    DeepBlue = Color(0xFF2563EB),
-    FilterStage3 = Color(0xFFA78BFA),
-    FilterStage4 = Color(0xFFFCD34D),
-    FilterStage5 = Color(0xFFF9A8D4),
-    TextPrimary = Color(0xFFFFFFFF),
-    TextSecondary = Color(0xFF94A3B8),
-    TextTertiary = Color(0xFF64748B),
+    Primary = Color(0xFF174B73),
+    GradientMain = Color(0xFF2596C9),
+    GradientSecondary = Color(0xFF8FD0E6),
+    PrimaryTint = Color(0xFFD6EEF6),
+    PrimaryContainerLight = Color(0xFFF2FCFF),
+    Background = Color(0xFFF3F6FA),
+    TextMain = Color(0xFF1F2927),
+    BrandNavy = Color(0xFFF3F6FA),
+    BgDeep = Color(0xFFFFFFFF),
+    BgMid = Color(0xFFEFF6FF),
+    SurfaceDark = Color(0xFFFFFFFF),
+    SurfaceCard = Color(0xFFF6F8FD),
+    SurfaceBorder = Color(0xFFE5E9F1),
+    AquaTeal = Color(0xFF174B73),
+    VividCyan = Color(0xFF2596C9),
+    LuminousIce = Color(0xFFD6EEF6),
+    DeepBlue = Color(0xFF8FD0E6),
+    FilterStage3 = Color(0xFF29A2A0),
+    FilterStage4 = Color(0xFF2C5ECE),
+    FilterStage5 = Color(0xFFADB2B8),
+    TextPrimary = Color(0xFF1F2927),
+    TextSecondary = Color(0xFF505966),
+    TextTertiary = Color(0xFF898F95),
     StatusGood = Color(0xFF10B981),
     StatusWarn = Color(0xFFF59E0B),
-    StatusAlert = Color(0xFFEF4444),
+    StatusAlert = Color(0xFFFF4D4F),
 )
 
 internal val LocalPloCareColors = staticCompositionLocalOf { UserPloCareColors }

@@ -1,7 +1,14 @@
 package com.senplo.plocare.ui.consumer.filtercare
 
-internal const val FILTER_UNIT_PRICE_KRW = 24_000
-internal const val SUBSCRIPTION_DISCOUNT_PERCENT = 10
+import com.senplo.plocare.domain.filter.FilterType
+import com.senplo.plocare.domain.filter.PricingPolicy
+import com.senplo.plocare.domain.filter.SamplePricingPolicy
+
+internal val defaultPricingPolicy: PricingPolicy = SamplePricingPolicy()
+internal val FILTER_UNIT_PRICE_KRW: Int
+    get() = defaultPricingPolicy.defaultFilterUnitPriceKrw
+internal val SUBSCRIPTION_DISCOUNT_PERCENT: Int
+    get() = defaultPricingPolicy.subscriptionDiscountPercent
 
 internal enum class FilterSupplyMode(val label: String) {
     ONE_TIME("단건 구매"),
@@ -15,12 +22,16 @@ internal data class FilterPurchaseDraft(
     val mode: FilterSupplyMode?,
 )
 
-internal fun purchaseSubtotalKrw(filterCount: Int, mode: FilterSupplyMode): Int {
-    val base = filterCount * FILTER_UNIT_PRICE_KRW
-    return when (mode) {
-        FilterSupplyMode.ONE_TIME -> base
-        FilterSupplyMode.SUBSCRIPTION -> base * (100 - SUBSCRIPTION_DISCOUNT_PERCENT) / 100
-    }
+internal fun purchaseSubtotalKrw(
+    filterCount: Int,
+    mode: FilterSupplyMode,
+    pricingPolicy: PricingPolicy = defaultPricingPolicy,
+): Int {
+    val types = List(filterCount.coerceAtLeast(0)) { FilterType.UNSPECIFIED }
+    return pricingPolicy.purchaseSubtotalKrw(
+        filterTypes = types,
+        isSubscription = mode == FilterSupplyMode.SUBSCRIPTION,
+    )
 }
 
 internal fun formatKrw(amount: Int): String {

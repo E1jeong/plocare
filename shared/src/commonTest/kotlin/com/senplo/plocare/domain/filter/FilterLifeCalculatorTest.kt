@@ -71,6 +71,71 @@ class FilterLifeCalculatorTest {
         assertEquals(0.030, FilterLifeCalculator.calibrateKv(0.015, 10_000.0), 0.0001)
         assertEquals(0.008, FilterLifeCalculator.calibrateKv(0.015, 10.0), 0.0001)
     }
+
+    @Test
+    fun effectiveDatePicksEarlierOfCapacityAndCycleExpiryAndSupportsCat01Fallback() {
+        val today = LocalDate(2026, 9, 10)
+        val capDate = LocalDate(2026, 10, 20)
+        val earlierCycle = LocalDate(2026, 9, 25)
+        val laterCycle = LocalDate(2026, 12, 1)
+
+        val (effCycle, reasonCycle) = FilterLifeCalculator.effectiveDateAndReason(today, capDate, earlierCycle)
+        assertEquals(earlierCycle, effCycle)
+        assertEquals(ReplacementReason.CYCLE_EXPIRY, reasonCycle)
+        assertEquals(15, FilterLifeCalculator.effectiveRemainingDays(today, effCycle))
+
+        val (effCap, reasonCap) = FilterLifeCalculator.effectiveDateAndReason(today, capDate, laterCycle)
+        assertEquals(capDate, effCap)
+        assertEquals(ReplacementReason.CAPACITY, reasonCap)
+
+        // CAT-01 fallback: ratedCapacityL == 0.0 produces null capacityDate and uses cycleExpiryDate safely
+        val nullCap = FilterLifeCalculator.capacityDate(today, filterUsageL = 320.0, ratedCapacityL = 0.0, dailyAvgL = 4.0)
+        assertNull(nullCap)
+        val (effFallback, reasonFallback) = FilterLifeCalculator.effectiveDateAndReason(today, nullCap, earlierCycle)
+        assertEquals(earlierCycle, effFallback)
+        assertEquals(ReplacementReason.CYCLE_EXPIRY, reasonFallback)
+    }
+
+    @Test
+    fun savingsCalculatorHandlesInitialLossBreakEvenProfitAndHeavyUsageHygieneMode() {
+        val policy = SamplePricingPolicy(
+            modulePriceKrw = 50_000,
+            monthlySubscriptionFeeKrw = 500,
+            defaultFilterUnitPriceKrw = 24_000,
+        )
+        // Month 2: initial loss period (scheduled 22,500/mo vs PloCare actual 14,000/mo + 500/mo + 50,000 module)
+        val early = SavingsCalculator.calculate(
+            elapsedMonths = 2,
+            scheduledMonthlyFilterCostKrw = 22_500.0,
+            actualMonthlyFilterCostKrw = 14_000.0,
+            pricingPolicy = policy,
+        )
+        assertTrue(early.netSavingsKrw < 0)
+        assertEquals(SavingsReportMode.BREAK_EVEN_PENDING, early.mode)
+        assertEquals(7, early.estimatedBreakEvenMonth)
+        assertEquals(5, early.remainingMonthsToBreakEven)
+
+        // Month 10: cumulative profit reached
+        val mature = SavingsCalculator.calculate(
+            elapsedMonths = 10,
+            scheduledMonthlyFilterCostKrw = 22_500.0,
+            actualMonthlyFilterCostKrw = 14_000.0,
+            pricingPolicy = policy,
+        )
+        assertTrue(mature.netSavingsKrw > 0)
+        assertEquals(SavingsReportMode.PROFIT, mature.mode)
+        assertEquals(0, mature.remainingMonthsToBreakEven)
+
+        // Heavy usage: actual filter cost >= scheduled cost -> hygiene value card mode
+        val heavy = SavingsCalculator.calculate(
+            elapsedMonths = 12,
+            scheduledMonthlyFilterCostKrw = 20_000.0,
+            actualMonthlyFilterCostKrw = 22_000.0,
+            pricingPolicy = policy,
+        )
+        assertEquals(SavingsReportMode.HYGIENE_VALUE, heavy.mode)
+        assertNull(heavy.estimatedBreakEvenMonth)
+    }
 }
 
 class DashboardSnapshotTest {
@@ -189,5 +254,44 @@ class DashboardSnapshotTest {
             ForecastStage.MATURE,
             buildDashboardSnapshot(day60, now, timeZone).forecastStage,
         )
+    }
+
+    @Test
+    fun cycleExpiryDrivesUrgencyBundleAndTankCumulativeRule() {
+        val now = now()
+        val base = DashboardFixtures.kitchenPurifier(today, now)
+        // Ten-stage tank purifier with cycle-only filters (ratedCapacityL = 0.0, CAT-01 fallback)
+        val tenFilters = (1..10).map { stage ->
+            FilterCartridge(
+                id = "tank-$stage",
+                stage = stage,
+                name = if (stage == 1) "세디먼트" else "복합필터 $stage",
+                ratedCapacityL = 0.0,
+                baselineL = base.totalCumulativeL - 100.0,
+                cycleMonths = 6,
+                installedOrReplacedOn = LocalDate(2026, 3, 10),
+                cycleExpiryDate = when (stage) {
+                    1 -> LocalDate(2026, 9, 10) // Expired today -> EXHAUSTED
+                    2 -> LocalDate(2026, 9, 18) // Within 14 days of stage 1 -> bundled
+                    else -> LocalDate(2026, 12, 10)
+                },
+            )
+        }
+        val tankDevice = base.copy(
+            filtrationType = FiltrationType.TANK,
+            managementType = ManagementType.VISIT,
+            filters = tenFilters,
+        )
+        assertFalse(tankDevice.supportsSinglePourReadout)
+        val snapshot = buildDashboardSnapshot(tankDevice, now, timeZone)
+
+        assertEquals(10, snapshot.filters.size)
+        assertEquals(0, snapshot.representativeRemainingDays)
+        assertEquals(LocalDate(2026, 9, 10), snapshot.representativeDate)
+        assertEquals(1, snapshot.overCapacityFilters.size)
+        assertEquals("tank-1", snapshot.overCapacityFilters.single().id)
+        assertEquals(ReplacementReason.CYCLE_EXPIRY, snapshot.filters[0].replacementReason)
+        val bundle = assertNotNull(snapshot.bundle)
+        assertEquals(setOf("tank-1", "tank-2"), bundle.filterIds.toSet())
     }
 }

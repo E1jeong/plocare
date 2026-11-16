@@ -35,7 +35,7 @@ class PurifierRepository(
         if (filterIds.isEmpty()) return
         _devices.value = _devices.value.map { device ->
             if (device.id != deviceId) device else {
-                val updated = device.withReplacedFilters(filterIds)
+                val updated = device.withReplacedFilters(filterIds, replacedOn = replacedOn)
                 updated.copy(
                     replacementHistory = listOf(
                         FilterReplacementRecord(

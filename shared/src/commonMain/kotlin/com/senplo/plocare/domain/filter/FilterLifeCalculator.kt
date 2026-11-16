@@ -1,5 +1,8 @@
 package com.senplo.plocare.domain.filter
 
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
@@ -41,22 +44,88 @@ object FilterLifeCalculator {
         return (filterUsageL / ratedCapacityL) * 100.0
     }
 
-    fun remainingCapacityL(filterUsageL: Double, ratedCapacityL: Double): Double =
-        max(0.0, ratedCapacityL - filterUsageL)
+    fun cycleExhaustionPercent(
+        cycleStartDate: LocalDate,
+        today: LocalDate,
+        cycleExpiryDate: LocalDate,
+    ): Double {
+        val totalDays = (cycleExpiryDate.toEpochDays() - cycleStartDate.toEpochDays()).toDouble()
+        if (totalDays <= 0.0) return 100.0
+        val elapsedDays = max(0.0, (today.toEpochDays() - cycleStartDate.toEpochDays()).toDouble())
+        return (elapsedDays / totalDays) * 100.0
+    }
+
+    fun remainingCapacityL(filterUsageL: Double, ratedCapacityL: Double): Double {
+        if (ratedCapacityL <= 0.0) return 0.0
+        return max(0.0, ratedCapacityL - filterUsageL)
+    }
 
     fun remainingDays(
         filterUsageL: Double,
         ratedCapacityL: Double,
         dailyAvgL: Double,
     ): Int {
-        if (filterUsageL >= ratedCapacityL) return 0
+        if (ratedCapacityL <= 0.0 || filterUsageL >= ratedCapacityL) return 0
         val remaining = remainingCapacityL(filterUsageL, ratedCapacityL)
         val avg = max(dailyAvgL, MIN_DAILY_AVG_L)
         return round(remaining / avg).toInt()
     }
 
-    fun excessLiters(filterUsageL: Double, ratedCapacityL: Double): Double =
-        max(0.0, filterUsageL - ratedCapacityL)
+    /**
+     * Returns the capacity-based replacement date when `ratedCapacityL > 0`,
+     * or `null` when rated capacity is unpopulated (`CAT-01` fallback).
+     */
+    fun capacityDate(
+        today: LocalDate,
+        filterUsageL: Double,
+        ratedCapacityL: Double,
+        dailyAvgL: Double,
+    ): LocalDate? {
+        if (ratedCapacityL <= 0.0) return null
+        val days = remainingDays(filterUsageL, ratedCapacityL, dailyAvgL)
+        return today.plus(days, DateTimeUnit.DAY)
+    }
+
+    /**
+     * Computes `EffectiveDate = min(CapacityDate, CycleExpiryDate)` and its reason.
+     * Falls back to `CycleExpiryDate` when `CapacityDate` is absent (`CAT-01`),
+     * and to `CapacityDate` when `CycleExpiryDate` is absent.
+     */
+    fun effectiveDateAndReason(
+        today: LocalDate,
+        capacityDate: LocalDate?,
+        cycleExpiryDate: LocalDate?,
+    ): Pair<LocalDate, ReplacementReason> = when {
+        capacityDate != null && cycleExpiryDate != null -> {
+            if (cycleExpiryDate < capacityDate) {
+                cycleExpiryDate to ReplacementReason.CYCLE_EXPIRY
+            } else {
+                capacityDate to ReplacementReason.CAPACITY
+            }
+        }
+        cycleExpiryDate != null -> cycleExpiryDate to ReplacementReason.CYCLE_EXPIRY
+        capacityDate != null -> capacityDate to ReplacementReason.CAPACITY
+        else -> today to ReplacementReason.CAPACITY
+    }
+
+    fun effectiveRemainingDays(today: LocalDate, effectiveDate: LocalDate): Int =
+        max(0, (effectiveDate.toEpochDays() - today.toEpochDays()).toInt())
+
+    fun isUrgent(
+        filterUsageL: Double,
+        ratedCapacityL: Double,
+        today: LocalDate,
+        cycleExpiryDate: LocalDate?,
+    ): Boolean {
+        val capacityExhausted = ratedCapacityL > 0.0 && filterUsageL >= ratedCapacityL
+        val cycleExpired = cycleExpiryDate != null && cycleExpiryDate <= today
+        return capacityExhausted || cycleExpired
+    }
+
+    fun excessLiters(filterUsageL: Double, ratedCapacityL: Double): Double {
+        if (ratedCapacityL <= 0.0) return 0.0
+        return max(0.0, filterUsageL - ratedCapacityL)
+    }
 
     fun excessDays(excessL: Double, dailyAvgL: Double): Int {
         if (excessL <= 0.0) return 0
