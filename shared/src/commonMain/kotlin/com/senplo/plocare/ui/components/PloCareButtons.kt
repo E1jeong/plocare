@@ -15,6 +15,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.senplo.plocare.ui.theme.PloCareColor
 import com.senplo.plocare.ui.theme.PloCareTheme
@@ -104,11 +108,23 @@ fun PloCareButton(
         null
     }
 
+    val shape = RoundedCornerShape(8.dp)
+
     Button(
         onClick = onClick,
-        modifier = modifier.then(sizeModifier),
+        modifier = modifier
+            .then(sizeModifier)
+            // Figma Shadow S: 0 4 24 0 rgba(0,0,0,0.03)
+            .dropShadow(
+                shape = shape,
+                shadow = Shadow(
+                    radius = 24.dp,
+                    color = Color.Black.copy(alpha = 0.03f),
+                    offset = DpOffset(0.dp, 4.dp),
+                ),
+            ),
         enabled = enabled,
-        shape = RoundedCornerShape(8.dp),
+        shape = shape,
         border = border,
         contentPadding = contentPadding,
         colors = ButtonDefaults.buttonColors(

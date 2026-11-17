@@ -10,6 +10,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.ibmplexsanskr_bold
+import plocare.shared.generated.resources.ibmplexsanskr_regular
 import plocare.shared.generated.resources.pretendard_bold
 import plocare.shared.generated.resources.pretendard_medium
 import plocare.shared.generated.resources.pretendard_regular
@@ -17,7 +19,6 @@ import plocare.shared.generated.resources.pretendard_semibold
 
 @Immutable
 data class PloCareTypography(
-    val displayHero: TextStyle,
     val headLarge: TextStyle,
     val headMid: TextStyle,
     val headSmall: TextStyle,
@@ -36,7 +37,7 @@ data class PloCareTypography(
     val gnbLabel: TextStyle,
 ) {
     fun toMaterialTypography(): Typography = Typography(
-        displayLarge = displayHero,
+        displayLarge = headLarge,
         displayMedium = headLarge,
         displaySmall = headMid,
         headlineLarge = headLarge,
@@ -56,13 +57,6 @@ data class PloCareTypography(
 
 fun buildPloCareTypography(fontFamily: FontFamily = FontFamily.Default): PloCareTypography =
     PloCareTypography(
-        displayHero = TextStyle(
-            fontFamily = fontFamily,
-            fontWeight = FontWeight.Bold,
-            fontSize = 48.sp,
-            lineHeight = 56.sp,
-            letterSpacing = (-0.96).sp,
-        ),
         headLarge = TextStyle(
             fontFamily = fontFamily,
             fontWeight = FontWeight.Medium,
@@ -184,6 +178,13 @@ fun rememberPretendardFontFamily(): FontFamily = FontFamily(
     Font(Res.font.pretendard_medium, FontWeight.Medium),
     Font(Res.font.pretendard_semibold, FontWeight.SemiBold),
     Font(Res.font.pretendard_bold, FontWeight.Bold),
+)
+
+/** Brand typeface (IBM Plex Sans KR) used by the intro artwork. */
+@Composable
+fun rememberBrandFontFamily(): FontFamily = FontFamily(
+    Font(Res.font.ibmplexsanskr_regular, FontWeight.Normal),
+    Font(Res.font.ibmplexsanskr_bold, FontWeight.Bold),
 )
 
 internal val LocalPloCareTypography = staticCompositionLocalOf { buildPloCareTypography() }

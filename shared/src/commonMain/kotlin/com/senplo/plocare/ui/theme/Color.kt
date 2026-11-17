@@ -30,11 +30,17 @@ data class PloCareColors(
     val Black0Surface: Color = Color(0xFFF6F8FD),
     val White: Color = Color(0xFFFFFFFF),
 
+    // Figma colors used in screens but absent from the palette frame
+    val SelectedCardSurface: Color = Color(0xFFEAF8FD), // selected device card (206:2427)
+    val GrayChateau: Color = Color(0xFF9CA1A8), // named style "Gray Chateau", bottom-sheet subtitle
+    val StatusAlertContainer: Color = Color(0x26FF4D4F), // danger % badge fill, #FF4D4F @ 15%
+
     // Figma Filter colors (15:320)
     val FilterSediment: Color = Color(0xFF80C15E),
     val FilterPreCarbon: Color = Color(0xFFC9A46E),
     val FilterPostCarbon: Color = Color(0xFF2C5ECE),
     val FilterMembrane: Color = Color(0xFF29A2A0),
+    // Not in Figma: unspecified/composite filter color pending designer confirmation (Black 40)
     val FilterUnassigned: Color = Color(0xFFADB2B8),
 
     // Legacy compatibility tokens mapped to Light Theme
@@ -99,39 +105,15 @@ val UserPloCareColors = PloCareColors(
     TextPrimary = Color(0xFF1F2927),
     TextSecondary = Color(0xFF505966),
     TextTertiary = Color(0xFF898F95),
+    // Not in Figma: temporary status colors pending designer confirmation
     StatusGood = Color(0xFF10B981),
     StatusWarn = Color(0xFFF59E0B),
     StatusAlert = Color(0xFFFF4D4F),
 )
 
-val PartnerPloCareColors = PloCareColors(
-    Primary = Color(0xFF174B73),
-    GradientMain = Color(0xFF2596C9),
-    GradientSecondary = Color(0xFF8FD0E6),
-    PrimaryTint = Color(0xFFD6EEF6),
-    PrimaryContainerLight = Color(0xFFF2FCFF),
-    Background = Color(0xFFF3F6FA),
-    TextMain = Color(0xFF1F2927),
-    BrandNavy = Color(0xFFF3F6FA),
-    BgDeep = Color(0xFFFFFFFF),
-    BgMid = Color(0xFFEFF6FF),
-    SurfaceDark = Color(0xFFFFFFFF),
-    SurfaceCard = Color(0xFFF6F8FD),
-    SurfaceBorder = Color(0xFFE5E9F1),
-    AquaTeal = Color(0xFF174B73),
-    VividCyan = Color(0xFF2596C9),
-    LuminousIce = Color(0xFFD6EEF6),
-    DeepBlue = Color(0xFF8FD0E6),
-    FilterStage3 = Color(0xFF29A2A0),
-    FilterStage4 = Color(0xFF2C5ECE),
-    FilterStage5 = Color(0xFFADB2B8),
-    TextPrimary = Color(0xFF1F2927),
-    TextSecondary = Color(0xFF505966),
-    TextTertiary = Color(0xFF898F95),
-    StatusGood = Color(0xFF10B981),
-    StatusWarn = Color(0xFFF59E0B),
-    StatusAlert = Color(0xFFFF4D4F),
-)
+// Design decision: partner screens share the customer palette (Figma GNB/partner 126:1033 uses the
+// customer colors and no partner-specific palette is planned). AppAudience still selects the palette.
+val PartnerPloCareColors = UserPloCareColors.copy()
 
 internal val LocalPloCareColors = staticCompositionLocalOf { UserPloCareColors }
 

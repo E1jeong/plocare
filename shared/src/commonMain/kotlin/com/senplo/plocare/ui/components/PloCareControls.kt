@@ -2,10 +2,8 @@ package com.senplo.plocare.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -15,25 +13,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.senplo.plocare.ui.theme.PloCareColor
 import com.senplo.plocare.ui.theme.PloCareTheme
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.ic_check
 
 @Composable
 fun PloCareChip(
@@ -54,7 +56,7 @@ fun PloCareChip(
             .clip(shape)
             .background(backgroundColor, shape)
             .border(1.dp, borderColor, shape)
-            .clickable(enabled = enabled, role = Role.Tab, onClick = onClick)
+            .selectable(selected = selected, enabled = enabled, role = Role.Tab, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -83,7 +85,8 @@ fun <T> PloCareSegmentedTab(
         modifier = modifier
             .fillMaxWidth()
             .background(colors.Black0Surface, containerShape)
-            .padding(8.dp),
+            .padding(8.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -103,7 +106,7 @@ fun <T> PloCareSegmentedTab(
                             Modifier
                         },
                     )
-                    .clickable(role = Role.Tab) { onItemSelected(item) },
+                    .selectable(selected = selected, role = Role.Tab) { onItemSelected(item) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -136,13 +139,15 @@ fun PloCareToggle(
 
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(width = 40.dp, height = 24.dp)
             .clip(RoundedCornerShape(24.dp))
             .background(trackColor)
-            .clickable(
+            .toggleable(
+                value = checked,
                 enabled = enabled,
                 role = Role.Switch,
-                onClick = { onCheckedChange(!checked) },
+                onValueChange = onCheckedChange,
             ),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -191,12 +196,14 @@ fun PloCareCheckbox(
 
     Box(
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .size(24.dp)
             .clip(RoundedCornerShape(6.dp))
-            .clickable(
+            .toggleable(
+                value = checked,
                 enabled = enabled,
                 role = Role.Checkbox,
-                onClick = { onCheckedChange(!checked) },
+                onValueChange = onCheckedChange,
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -214,22 +221,11 @@ fun PloCareCheckbox(
             contentAlignment = Alignment.Center,
         ) {
             if (checkMarkColor != null) {
-                Canvas(modifier = Modifier.size(width = 12.dp, height = 9.dp)) {
-                    val path = Path().apply {
-                        moveTo(size.width * 0.1f, size.height * 0.52f)
-                        lineTo(size.width * 0.42f, size.height * 0.86f)
-                        lineTo(size.width * 0.92f, size.height * 0.14f)
-                    }
-                    drawPath(
-                        path = path,
-                        color = checkMarkColor,
-                        style = Stroke(
-                            width = 2.dp.toPx(),
-                            cap = StrokeCap.Round,
-                            join = StrokeJoin.Round,
-                        ),
-                    )
-                }
+                Icon(
+                    painter = painterResource(Res.drawable.ic_check),
+                    contentDescription = null,
+                    tint = checkMarkColor,
+                )
             }
         }
     }

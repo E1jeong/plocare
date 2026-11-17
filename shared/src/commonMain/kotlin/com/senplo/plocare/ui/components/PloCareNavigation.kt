@@ -1,6 +1,5 @@
 package com.senplo.plocare.ui.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -20,20 +21,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.senplo.plocare.ui.theme.PloCareColor
 import com.senplo.plocare.ui.theme.PloCareTheme
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.ic_back
+import plocare.shared.generated.resources.ic_scan
 
 data class PloCareBottomBarItem<T>(
     val id: T,
@@ -49,45 +56,79 @@ fun <T> PloCareBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val colors = PloCareColor
+    // Figma GNB (74:878 / 126:1033) bar, pill, and active-tab gradients
     val outerBrush = Brush.verticalGradient(
         colors = listOf(
-            colors.White.copy(alpha = 0.96f),
-            colors.White.copy(alpha = 0.82f),
+            colors.White,
+            colors.White.copy(alpha = 0.6f),
         ),
     )
+    val topStrokeBrush = Brush.horizontalGradient(
+        0f to colors.White.copy(alpha = 0.05f),
+        0.18f to colors.White,
+        0.86f to colors.White,
+        1f to colors.White.copy(alpha = 0.05f),
+    )
     val pillShape = RoundedCornerShape(100.dp)
+    val pillBorderBrush = Brush.verticalGradient(
+        colors = listOf(
+            colors.White.copy(alpha = 0.2f),
+            colors.White.copy(alpha = 0.05f),
+        ),
+    )
     val selectedFillBrush = Brush.verticalGradient(
         colors = listOf(
-            colors.GradientSecondary.copy(alpha = 0.12f),
-            colors.GradientSecondary.copy(alpha = 0.22f),
+            colors.GradientSecondary.copy(alpha = 0.1f),
+            colors.GradientSecondary.copy(alpha = 0.2f),
         ),
     )
     val selectedBorderBrush = Brush.verticalGradient(
         colors = listOf(
-            colors.GradientSecondary.copy(alpha = 0.08f),
-            colors.GradientSecondary.copy(alpha = 0.25f),
+            colors.GradientSecondary.copy(alpha = 0.05f),
+            colors.GradientSecondary.copy(alpha = 0.2f),
         ),
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .dropShadow(
+                shape = RectangleShape,
+                shadow = Shadow(
+                    radius = 80.dp,
+                    color = Color(0xFF222C3A).copy(alpha = 0.03f),
+                    offset = DpOffset(0.dp, (-24).dp),
+                ),
+            )
             .background(outerBrush)
+            .drawWithContent {
+                drawContent()
+                val strokeWidth = 1.dp.toPx()
+                drawLine(
+                    brush = topStrokeBrush,
+                    start = Offset(0f, strokeWidth / 2),
+                    end = Offset(size.width, strokeWidth / 2),
+                    strokeWidth = strokeWidth,
+                )
+            }
             .navigationBarsPadding()
             .padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 18.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(
-                    elevation = 12.dp,
+                .dropShadow(
                     shape = pillShape,
-                    ambientColor = colors.Primary.copy(alpha = 0.08f),
-                    spotColor = colors.Primary.copy(alpha = 0.08f),
+                    shadow = Shadow(
+                        radius = 24.dp,
+                        color = Color(0xFF1F5F8B).copy(alpha = 0.05f),
+                        offset = DpOffset(0.dp, 4.dp),
+                    ),
                 )
                 .background(colors.White, pillShape)
-                .border(1.dp, colors.Black10.copy(alpha = 0.6f), pillShape)
-                .padding(4.dp),
+                .border(1.dp, pillBorderBrush, pillShape)
+                .padding(4.dp)
+                .selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEach { item ->
@@ -106,14 +147,15 @@ fun <T> PloCareBottomBar(
                                 Modifier
                             },
                         )
-                        .clickable(role = Role.Tab) { onSelect(item.id) }
+                        .selectable(selected = selected, role = Role.Tab) { onSelect(item.id) }
                         .padding(horizontal = 8.dp, vertical = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                 ) {
                     Icon(
                         painter = item.icon,
-                        contentDescription = item.label,
+                        // The label below already names the tab for screen readers.
+                        contentDescription = null,
                         tint = contentColor,
                         modifier = Modifier.size(20.dp),
                     )
@@ -138,10 +180,12 @@ fun PloCareWizardHeader(
     onBackClick: () -> Unit,
     onScanClick: (() -> Unit)? = null,
     scanLabel: String = "스캔",
+    backLabel: String = "뒤로",
     modifier: Modifier = Modifier,
 ) {
     val colors = PloCareColor
     val typography = PloCareTheme.typography
+    val steps = totalSteps.coerceAtLeast(1)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -164,7 +208,11 @@ fun PloCareWizardHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                BackChevronIcon(tint = colors.TextMain)
+                Icon(
+                    painter = painterResource(Res.drawable.ic_back),
+                    contentDescription = backLabel,
+                    tint = colors.TextMain,
+                )
                 Text(
                     text = title,
                     style = typography.titleLarge,
@@ -176,23 +224,30 @@ fun PloCareWizardHeader(
                 val pillShape = RoundedCornerShape(100.dp)
                 Row(
                     modifier = Modifier
-                        .shadow(
-                            elevation = 8.dp,
+                        .dropShadow(
                             shape = pillShape,
-                            ambientColor = Color.Black.copy(alpha = 0.06f),
-                            spotColor = Color.Black.copy(alpha = 0.06f),
+                            shadow = Shadow(
+                                radius = 24.dp,
+                                color = Color.Black.copy(alpha = 0.04f),
+                                offset = DpOffset(0.dp, 4.dp),
+                            ),
                         )
                         .clip(pillShape)
                         .background(colors.White, pillShape)
                         .clickable(role = Role.Button, onClick = onScanClick)
-                        .padding(horizontal = 18.dp, vertical = 10.dp),
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    ScanFrameIcon(tint = colors.Primary)
+                    Icon(
+                        painter = painterResource(Res.drawable.ic_scan),
+                        contentDescription = null,
+                        tint = colors.Primary,
+                    )
                     Text(
                         text = scanLabel,
-                        style = typography.bodyLarge,
+                        // Figma component body/large: Regular 400, 15/22, -0.03em
+                        style = typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
                         color = colors.Primary,
                     )
                 }
@@ -219,12 +274,17 @@ fun PloCareWizardHeader(
                 Box(
                     modifier = Modifier
                         .background(colors.Black10, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                        .padding(horizontal = 6.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "${currentStep.coerceIn(1, totalSteps)}/$totalSteps",
-                        style = typography.gnbLabel,
+                        text = "${currentStep.coerceIn(1, steps)}/$steps",
+                        // Figma 79:2256 counter: Regular 400, 13/22, -0.03em
+                        style = typography.gnbLabel.copy(
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = 22.sp,
+                            letterSpacing = (-0.39).sp,
+                        ),
                         color = colors.Primary,
                     )
                 }
@@ -236,7 +296,7 @@ fun PloCareWizardHeader(
                     .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                for (step in 1..totalSteps.coerceAtLeast(1)) {
+                for (step in 1..steps) {
                     val active = step <= currentStep
                     Box(
                         modifier = Modifier
@@ -250,56 +310,5 @@ fun PloCareWizardHeader(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun BackChevronIcon(tint: Color) {
-    Canvas(modifier = Modifier.size(20.dp)) {
-        val path = Path().apply {
-            moveTo(size.width * 0.65f, size.height * 0.18f)
-            lineTo(size.width * 0.30f, size.height * 0.50f)
-            lineTo(size.width * 0.65f, size.height * 0.82f)
-        }
-        drawPath(
-            path = path,
-            color = tint,
-            style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-            ),
-        )
-    }
-}
-
-@Composable
-private fun ScanFrameIcon(tint: Color) {
-    Canvas(modifier = Modifier.size(18.dp)) {
-        val stroke = 1.7.dp.toPx()
-        val corner = size.width * 0.28f
-        val pad = size.width * 0.1f
-        val max = size.width - pad
-
-        // Top-left bracket
-        drawLine(tint, Offset(pad, pad), Offset(pad + corner, pad), stroke, StrokeCap.Round)
-        drawLine(tint, Offset(pad, pad), Offset(pad, pad + corner), stroke, StrokeCap.Round)
-        // Top-right bracket
-        drawLine(tint, Offset(max, pad), Offset(max - corner, pad), stroke, StrokeCap.Round)
-        drawLine(tint, Offset(max, pad), Offset(max, pad + corner), stroke, StrokeCap.Round)
-        // Bottom-left bracket
-        drawLine(tint, Offset(pad, max), Offset(pad + corner, max), stroke, StrokeCap.Round)
-        drawLine(tint, Offset(pad, max), Offset(pad, max - corner), stroke, StrokeCap.Round)
-        // Bottom-right bracket
-        drawLine(tint, Offset(max, max), Offset(max - corner, max), stroke, StrokeCap.Round)
-        drawLine(tint, Offset(max, max), Offset(max, max - corner), stroke, StrokeCap.Round)
-        // Center scan line
-        drawLine(
-            color = tint,
-            start = Offset(pad + 2.dp.toPx(), size.height * 0.5f),
-            end = Offset(max - 2.dp.toPx(), size.height * 0.5f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
     }
 }

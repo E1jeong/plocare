@@ -5,7 +5,6 @@ import androidx.compose.ui.unit.sp
 import com.senplo.plocare.domain.filter.FilterType
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class PloCareThemeTest {
@@ -27,16 +26,16 @@ class PloCareThemeTest {
     }
 
     @Test
-    fun partnerPaletteUsesDistinctAccents() {
-        assertEquals(Color(0xFF174B73), PartnerPloCareColors.Primary)
-        assertEquals(Color(0xFF2596C9), PartnerPloCareColors.GradientMain)
-        assertEquals(Color(0xFFF3F6FA), PartnerPloCareColors.Background)
-        assertNotEquals(UserPloCareColors.AquaTeal, PartnerPloCareColors.AquaTeal)
-        assertNotEquals(UserPloCareColors.VividCyan, PartnerPloCareColors.VividCyan)
-        assertNotEquals(UserPloCareColors.BrandNavy, PartnerPloCareColors.BrandNavy)
-        assertEquals(UserPloCareColors.StatusAlert, PartnerPloCareColors.StatusAlert)
-        assertEquals(UserPloCareColors.StatusWarn, PartnerPloCareColors.StatusWarn)
-        assertEquals(UserPloCareColors.StatusGood, PartnerPloCareColors.StatusGood)
+    fun partnerPaletteSharesUserPalette() {
+        assertEquals(UserPloCareColors, PartnerPloCareColors)
+    }
+
+    @Test
+    fun paletteIncludesFigmaScreenColorsMissingFromPaletteFrame() {
+        assertEquals(Color(0xFFEAF8FD), UserPloCareColors.SelectedCardSurface)
+        assertEquals(Color(0xFF9CA1A8), UserPloCareColors.GrayChateau)
+        // Figma danger badge fill: rgba(255,77,79,0.15)
+        assertEquals(Color(0x26FF4D4F), UserPloCareColors.StatusAlertContainer)
     }
 
     @Test
