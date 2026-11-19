@@ -5,22 +5,11 @@ import com.senplo.plocare.domain.filter.PricingPolicy
 import com.senplo.plocare.domain.filter.SamplePricingPolicy
 
 internal val defaultPricingPolicy: PricingPolicy = SamplePricingPolicy()
-internal val FILTER_UNIT_PRICE_KRW: Int
-    get() = defaultPricingPolicy.defaultFilterUnitPriceKrw
-internal val SUBSCRIPTION_DISCOUNT_PERCENT: Int
-    get() = defaultPricingPolicy.subscriptionDiscountPercent
 
 internal enum class FilterSupplyMode(val label: String) {
-    ONE_TIME("단건 구매"),
+    ONE_TIME("1회 구매"),
     SUBSCRIPTION("정기 구독"),
 }
-
-internal data class FilterPurchaseDraft(
-    val contact: String,
-    val address: String,
-    val selectedFilterIds: Set<String>,
-    val mode: FilterSupplyMode?,
-)
 
 internal fun purchaseSubtotalKrw(
     filterCount: Int,
@@ -41,15 +30,18 @@ internal fun formatKrw(amount: Int): String {
     return "$sign${grouped}원"
 }
 
-internal fun validateFilterPurchase(draft: FilterPurchaseDraft): String? {
-    val phoneDigits = draft.contact.filter { it.isDigit() }
-    return when {
-        draft.address.trim().isEmpty() -> "배송 주소를 입력해 주세요."
-        phoneDigits.length < 10 -> "연락처를 입력해 주세요."
-        draft.selectedFilterIds.isEmpty() -> "구매할 필터를 선택해 주세요."
-        draft.mode == null -> "구매 또는 구독을 선택해 주세요."
-        else -> null
-    }
+/** Figma 98:5885 tab labels; the subscription tab carries the policy discount. */
+internal fun supplyModeTabLabel(
+    mode: FilterSupplyMode,
+    pricingPolicy: PricingPolicy = defaultPricingPolicy,
+): String = when (mode) {
+    FilterSupplyMode.ONE_TIME -> mode.label
+    FilterSupplyMode.SUBSCRIPTION -> "${mode.label} • ${pricingPolicy.subscriptionDiscountPercent}% 할인"
+}
+
+internal fun purchaseCtaLabel(mode: FilterSupplyMode): String = when (mode) {
+    FilterSupplyMode.ONE_TIME -> "구매하기"
+    FilterSupplyMode.SUBSCRIPTION -> "구독 시작하기"
 }
 
 internal fun purchaseConfirmationTitle(mode: FilterSupplyMode): String = when (mode) {
@@ -59,7 +51,7 @@ internal fun purchaseConfirmationTitle(mode: FilterSupplyMode): String = when (m
 
 internal fun purchaseConfirmationDetail(mode: FilterSupplyMode): String = when (mode) {
     FilterSupplyMode.ONE_TIME ->
-        "단건 구매 미리보기입니다. 결제와 배송은 연결되지 않았습니다. 서버에 저장되지 않습니다."
+        "1회 구매 미리보기입니다. 결제와 배송은 연결되지 않았습니다. 서버에 저장되지 않습니다."
     FilterSupplyMode.SUBSCRIPTION ->
         "정기 구독 미리보기입니다. 자동 결제와 배송은 연결되지 않았습니다. 서버에 저장되지 않습니다."
 }

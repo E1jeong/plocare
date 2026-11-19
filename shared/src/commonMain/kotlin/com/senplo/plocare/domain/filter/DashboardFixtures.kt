@@ -31,6 +31,8 @@ object DashboardFixtures {
         return PurifierDevice(
             id = KITCHEN_ID,
             nickname = "우리 집 주방 정수기",
+            makerName = "제조사 A",
+            modelCode = "A-IN900",
             installedOn = today.minus(120, DateTimeUnit.DAY),
             householdSize = 3,
             totalCumulativeL = totalCumulativeL,
@@ -115,6 +117,8 @@ object DashboardFixtures {
         return PurifierDevice(
             id = OFFICE_ID,
             nickname = "사무실 직수 정수기",
+            makerName = "제조사 A",
+            modelCode = "A-IN900",
             installedOn = today.minus(18, DateTimeUnit.DAY),
             householdSize = 2,
             totalCumulativeL = totalCumulativeL,

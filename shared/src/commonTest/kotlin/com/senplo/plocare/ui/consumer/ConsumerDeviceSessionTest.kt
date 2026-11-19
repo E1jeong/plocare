@@ -3,6 +3,7 @@ package com.senplo.plocare.ui.consumer
 import androidx.lifecycle.SavedStateHandle
 import com.senplo.plocare.domain.filter.DashboardFixtures
 import com.senplo.plocare.navigation.CONSUMER_DEVICE_ID_KEY
+import com.senplo.plocare.ui.consumer.filtercare.VisitPreference
 import com.senplo.plocare.ui.consumer.filtercare.VisitRequestDraft
 import com.senplo.plocare.ui.consumer.filtercare.VisitTimeWindow
 import kotlinx.datetime.LocalDate
@@ -62,9 +63,10 @@ class ConsumerDeviceSessionTest {
                 contact = "010-1234-5678",
                 address = "서울 광진구 아차산로 42",
                 selectedFilterIds = setOf("office-1"),
-                date = LocalDate(2026, 9, 28),
-                window = VisitTimeWindow.AFTERNOON,
-                notes = "주차장 이용",
+                preferences = listOf(
+                    VisitPreference(LocalDate(2026, 9, 28), VisitTimeWindow.AFTERNOON),
+                    VisitPreference(LocalDate(2026, 9, 29), VisitTimeWindow.MORNING),
+                ),
             ),
         )
 
@@ -73,8 +75,18 @@ class ConsumerDeviceSessionTest {
         assertEquals(16, ticket.windowEndHour)
         assertEquals("010-1234-5678", ticket.contact)
         assertEquals("서울 광진구 아차산로 42", ticket.address)
-        assertEquals("주차장 이용", ticket.notes)
+        assertEquals(LocalDate(2026, 9, 28), ticket.scheduledDate)
         assertEquals(listOf("office-1"), ticket.targetFilterIds)
         assertEquals(null, session.repository.device(DashboardFixtures.KITCHEN_ID)!!.visitTicket?.address)
+    }
+
+    @Test
+    fun removingSelectedDeviceSelectsARemainingOne() {
+        val session = ConsumerDeviceSession(SavedStateHandle(), timeZone, now)
+
+        session.removeDevice(DashboardFixtures.KITCHEN_ID)
+
+        assertEquals(DashboardFixtures.OFFICE_ID, session.selectedId.value)
+        assertEquals(listOf(DashboardFixtures.OFFICE_ID), session.devices.value.map { it.id })
     }
 }

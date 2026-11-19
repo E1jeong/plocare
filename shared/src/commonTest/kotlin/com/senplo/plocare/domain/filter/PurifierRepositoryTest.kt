@@ -120,4 +120,18 @@ class PurifierRepositoryTest {
         assertEquals("우리 집 정수기", repository.device(DashboardFixtures.KITCHEN_ID)!!.nickname)
         assertEquals(officeBefore, repository.device(DashboardFixtures.OFFICE_ID))
     }
+
+    @Test
+    fun removeDeviceKeepsOthersAndRefusesTheLastOne() {
+        val repository = PurifierRepository(DashboardFixtures.devices(now, timeZone))
+        val officeBefore = repository.device(DashboardFixtures.OFFICE_ID)!!
+
+        repository.removeDevice(DashboardFixtures.KITCHEN_ID)
+
+        assertEquals(listOf(officeBefore), repository.devices.value)
+        assertFailsWith<IllegalArgumentException> {
+            repository.removeDevice(DashboardFixtures.OFFICE_ID)
+        }
+        assertEquals(listOf(officeBefore), repository.devices.value)
+    }
 }

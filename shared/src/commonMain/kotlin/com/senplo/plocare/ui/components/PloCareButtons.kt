@@ -32,6 +32,9 @@ enum class PloCareButtonSize {
 enum class PloCareButtonVariant {
     Primary,
     Secondary,
+
+    /** Figma `button/medium` with the alert fill, e.g. the purifier remove confirmation (360:3996). */
+    Danger,
 }
 
 @Composable
@@ -95,11 +98,13 @@ fun PloCareButton(
     val containerColor = when (variant) {
         PloCareButtonVariant.Primary -> colors.Primary
         PloCareButtonVariant.Secondary -> colors.Black0Surface
+        PloCareButtonVariant.Danger -> colors.StatusAlert
     }
 
     val contentColor = when (variant) {
         PloCareButtonVariant.Primary -> colors.Background
         PloCareButtonVariant.Secondary -> colors.TextMain
+        PloCareButtonVariant.Danger -> colors.Background
     }
 
     val border = if (enabled && variant == PloCareButtonVariant.Secondary) {

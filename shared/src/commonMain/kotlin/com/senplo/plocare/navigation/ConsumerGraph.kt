@@ -51,9 +51,9 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                 devices = devices,
                 now = now,
                 onSelectDevice = session::select,
-                onReplaceFilter = session::replaceSelectedFilter,
                 onRenameDevice = session::renameSelectedDevice,
                 onRefreshTelemetry = { session.refreshSelectedTelemetry() },
+                onRemoveDevice = session::removeDevice,
                 onBookVisit = { filterIds ->
                     navController.navigate(Route.VisitRequest(encodeVisitFilterIds(filterIds))) {
                         launchSingleTop = true

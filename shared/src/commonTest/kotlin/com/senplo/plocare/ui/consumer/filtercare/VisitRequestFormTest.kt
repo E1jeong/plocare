@@ -1,10 +1,10 @@
 package com.senplo.plocare.ui.consumer.filtercare
 
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.isoDayNumber
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class VisitRequestFormTest {
@@ -18,40 +18,40 @@ class VisitRequestFormTest {
     }
 
     @Test
-    fun dateChipLabelDropsLeadingZeros() {
-        assertEquals("9/14", visitDateChipLabel(LocalDate(2026, 9, 14)))
-        assertEquals("12/3", visitDateChipLabel(LocalDate(2026, 12, 3)))
+    fun calendarStartsOnMondayOfThisWeekForThreeWeeks() {
+        val days = visitCalendarDays(thursday)
+        assertEquals(21, days.size)
+        assertEquals(LocalDate(2026, 9, 7), days.first())
+        assertEquals(DayOfWeek.MONDAY, days.first().dayOfWeek)
+        assertEquals(LocalDate(2026, 9, 27), days.last())
     }
 
     @Test
-    fun dateOptionsStartFromEarliestBusinessDay() {
-        val options = visitDateOptions(thursday, count = 5)
-        assertEquals(LocalDate(2026, 9, 14), options.first())
-        assertEquals(5, options.size)
-        assertTrue(options.none { it.dayOfWeek.isoDayNumber >= 6 })
+    fun onlyBusinessDaysFromTheEarliestVisitAreSelectable() {
+        assertFalse(isVisitDateSelectable(LocalDate(2026, 9, 11), thursday))
+        assertTrue(isVisitDateSelectable(LocalDate(2026, 9, 14), thursday))
+        assertFalse(isVisitDateSelectable(LocalDate(2026, 9, 19), thursday))
+        assertFalse(isVisitDateSelectable(LocalDate(2026, 9, 20), thursday))
     }
 
     @Test
-    fun validationRejectsIncompleteDraft() {
-        val base = validDraft(thursday)
-        assertEquals("주소를 입력해 주세요.", validateVisitRequest(base.copy(address = "  "), thursday))
-        assertEquals("연락처를 입력해 주세요.", validateVisitRequest(base.copy(contact = "010-123"), thursday))
-        assertEquals("교체할 필터를 선택해 주세요.", validateVisitRequest(base.copy(selectedFilterIds = emptySet()), thursday))
-        assertEquals("희망 날짜를 선택해 주세요.", validateVisitRequest(base.copy(date = null), thursday))
-        assertEquals(
-            "방문일은 영업일 기준 이틀 이후부터 선택할 수 있습니다.",
-            validateVisitRequest(base.copy(date = LocalDate(2026, 9, 11)), thursday),
-        )
-        assertEquals(
-            "주말에는 방문 예약이 불가합니다.",
-            validateVisitRequest(base.copy(date = LocalDate(2026, 9, 19)), thursday),
-        )
-        assertEquals("희망 시간대를 선택해 주세요.", validateVisitRequest(base.copy(window = null), thursday))
+    fun preferencesKeepPriorityOrderAndCapAtThree() {
+        val a = LocalDate(2026, 9, 14)
+        val b = LocalDate(2026, 9, 16)
+        val c = LocalDate(2026, 9, 18)
+        val d = LocalDate(2026, 9, 21)
+        var dates = listOf<LocalDate>()
+        dates = toggleVisitDate(dates, b)
+        dates = toggleVisitDate(dates, a)
+        dates = toggleVisitDate(dates, c)
+        assertEquals(listOf(b, a, c), dates)
+        assertEquals(listOf(b, a, c), toggleVisitDate(dates, d))
+        assertEquals(listOf(b, c), toggleVisitDate(dates, a))
     }
 
     @Test
-    fun validationAcceptsCompleteDraft() {
-        assertNull(validateVisitRequest(validDraft(thursday), thursday))
+    fun preferenceLabelShowsMonthDayAndWeekday() {
+        assertEquals("9월 14일(월)", visitPreferenceLabel(LocalDate(2026, 9, 14)))
     }
 
     @Test
@@ -60,13 +60,4 @@ class VisitRequestFormTest {
         assertEquals(listOf("kitchen-1", "kitchen-2"), decodeVisitFilterIds("kitchen-1,kitchen-2"))
         assertEquals(emptyList(), decodeVisitFilterIds(""))
     }
-
-    private fun validDraft(today: LocalDate) = VisitRequestDraft(
-        contact = "010-1234-5678",
-        address = DEFAULT_VISIT_ADDRESS,
-        selectedFilterIds = setOf("kitchen-1"),
-        date = addBusinessDays(today, 2),
-        window = VisitTimeWindow.AFTERNOON,
-        notes = "주차 가능",
-    )
 }

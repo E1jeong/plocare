@@ -1,408 +1,905 @@
 package com.senplo.plocare.ui.consumer.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.FilterSnapshot
-import com.senplo.plocare.domain.filter.ForecastStage
 import com.senplo.plocare.domain.filter.PurifierDevice
-import com.senplo.plocare.ui.consumer.DeviceNicknameDialog
 import com.senplo.plocare.ui.theme.PloCareColor
+import com.senplo.plocare.ui.theme.PloCareTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.ic_error
+import plocare.shared.generated.resources.ic_notifications_active
+import plocare.shared.generated.resources.ic_unfold_more
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.window.Dialog
+import com.senplo.plocare.domain.filter.MakerGroup
+import com.senplo.plocare.ui.components.PloCareBottomSheet
+import com.senplo.plocare.ui.components.PloCareButton
+import com.senplo.plocare.ui.components.PloCareButtonVariant
+import com.senplo.plocare.ui.components.PloCareCheckMark
+import com.senplo.plocare.ui.components.PloCareCheckboxStyle
+import com.senplo.plocare.ui.components.PloCareChip
+import com.senplo.plocare.ui.components.PloCareTextField
+import plocare.shared.generated.resources.ic_add
+import plocare.shared.generated.resources.ic_chevron_down
+import plocare.shared.generated.resources.ic_delete
 import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Figma 01 대시보드 list layout (349:1675), switch sheet (349:1893), banner (380:2209)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun HomeDashboardScreen(
     devices: List<PurifierDevice>,
     snapshot: DashboardSnapshot,
     now: Instant,
     onSelectDevice: (String) -> Unit,
-    onReplaceFilter: (String) -> Unit,
-    onRenameDevice: (String) -> Unit,
     onRefreshTelemetry: () -> Unit,
     onRequestReplacement: (filterIds: List<String>) -> Unit,
     onOpenDeviceSettings: () -> Unit,
+    onRemoveDevice: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val selected = snapshot.device
     var isRefreshing by remember { mutableStateOf(false) }
-    var pendingSelfReplace by remember { mutableStateOf<FilterSnapshot?>(null) }
-    var editingNickname by remember { mutableStateOf(false) }
+    var switcherOpen by rememberSaveable { mutableStateOf(false) }
+    var dismissedBannerDeviceIds by rememberSaveable { mutableStateOf(listOf<String>()) }
+    var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
+    var addSheetOpen by rememberSaveable { mutableStateOf(false) }
+    var removedToastVisible by remember { mutableStateOf(false) }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            scope.launch {
-                isRefreshing = true
-                delay(350)
-                onRefreshTelemetry()
-                isRefreshing = false
-            }
-        },
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-        ) {
-            DashboardHeader(
-                devices = devices,
-                selected = selected,
-                syncText = syncLabel(now - selected.lastTelemetryAt),
-                onSelectDevice = onSelectDevice,
-                onEditNickname = { editingNickname = true },
-                onOpenNotifications = {},
-                onOpenDeviceSettings = onOpenDeviceSettings,
-            )
+    val banner = remember(snapshot) { replacementBanner(snapshot) }
+        ?.takeIf { selected.id !in dismissedBannerDeviceIds }
+    // Keeps the last banner on screen while its exit animation runs.
+    var lastBanner by remember { mutableStateOf(banner) }
+    if (banner != null) lastBanner = banner
 
-            if (snapshot.sensorStale) {
-                Spacer(modifier = Modifier.height(12.dp))
-                AlertBanner(
-                    accent = PloCareColor.StatusWarn,
-                    title = "정수기 센서 Wi-Fi 연결을 확인해 주세요 (24시간 미수신)",
-                    actionLabel = "연결 가이드",
-                    onAction = onOpenDeviceSettings,
-                )
-            }
+    BackHandler(enabled = switcherOpen) { switcherOpen = false }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            AiBriefingBanner(snapshot = snapshot)
-
-            Spacer(modifier = Modifier.height(12.dp))
-            FilterUsageDonut(
-                filters = snapshot.filters,
-                onSelfReplace = { pendingSelfReplace = it },
-                onRequestReplacement = { onRequestReplacement(listOf(it.id)) },
-            )
-
-            snapshot.overCapacityFilters.firstOrNull()?.let { exhausted ->
-                Spacer(modifier = Modifier.height(12.dp))
-                AlertBanner(
-                    accent = PloCareColor.StatusAlert,
-                    title = overCapacityMessage(exhausted),
-                    actionLabel = "긴급 방문 교체 요청",
-                    onAction = { onRequestReplacement(listOf(exhausted.id)) },
-                )
-            }
-
-            bundleMessage(snapshot)?.let { message ->
-                Spacer(modifier = Modifier.height(12.dp))
-                AlertBanner(
-                    accent = PloCareColor.VividCyan,
-                    title = message,
-                    actionLabel = "원클릭 묶음 교체 신청하기",
-                    onAction = { onRequestReplacement(snapshot.bundle?.filterIds.orEmpty()) },
-                )
-            }
-
-            selected.visitTicket?.let { ticket ->
-                Spacer(modifier = Modifier.height(12.dp))
-                VisitTicketCard(
-                    whenLabel = visitWhen(ticket),
-                    technician = ticket.technicianMaskedName,
-                    targets = visitTargets(ticket, snapshot.filters),
-                    requestDetails = if (ticket.technicianMaskedName == null) {
-                        listOfNotNull(ticket.address, ticket.contact, ticket.notes?.takeIf { it.isNotBlank() })
-                    } else emptyList(),
-                    onReview = { onRequestReplacement(ticket.targetFilterIds) },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
+    // Screen-flow spec 4.1: the banner pushes the content down, then closes.
+    val bannerFilterId = banner?.filterId
+    LaunchedEffect(selected.id, bannerFilterId) {
+        if (bannerFilterId != null) {
+            delay(BANNER_VISIBLE_MILLIS)
+            dismissedBannerDeviceIds = dismissedBannerDeviceIds + selected.id
         }
     }
 
-    pendingSelfReplace?.let { filter ->
-        AlertDialog(
-            onDismissRequest = { pendingSelfReplace = null },
-            containerColor = PloCareColor.SurfaceCard,
-            title = {
-                Text(
-                    text = "자가 교체 확인",
-                    color = PloCareColor.TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                )
+    Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    isRefreshing = true
+                    delay(350)
+                    onRefreshTelemetry()
+                    isRefreshing = false
+                }
             },
-            text = {
-                Text(
-                    text = selfReplaceSummary(filter, selected.totalCumulativeL),
-                    color = PloCareColor.TextSecondary,
-                    fontSize = 14.sp,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onReplaceFilter(filter.id)
-                        pendingSelfReplace = null
-                    },
+            modifier = Modifier
+                .fillMaxSize()
+                // Hide the dashboard from screen readers while the switch sheet covers it.
+                .then(if (switcherOpen) Modifier.clearAndSetSemantics {} else Modifier),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                AnimatedVisibility(
+                    visible = banner != null,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut(),
                 ) {
-                    Text("확인", color = PloCareColor.AquaTeal, fontWeight = FontWeight.Bold)
+                    lastBanner?.let { copy ->
+                        ReplacementBanner(
+                            copy = copy,
+                            // Tapping leads to the purchase/replacement choice for that filter.
+                            onOpen = {
+                                dismissedBannerDeviceIds = dismissedBannerDeviceIds + selected.id
+                                onRequestReplacement(listOf(copy.filterId))
+                            },
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                        )
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingSelfReplace = null }) {
-                    Text("취소", color = PloCareColor.TextSecondary)
+
+                DashboardHeader(
+                    device = selected,
+                    filterCount = snapshot.filters.size,
+                    connected = !snapshot.sensorStale,
+                    syncText = syncLabel(now - selected.lastTelemetryAt),
+                    onOpenSwitcher = { switcherOpen = true },
+                    onOpenDeviceSettings = onOpenDeviceSettings,
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    snapshot.filters.forEach { filter ->
+                        FilterGaugeCard(
+                            filter = filter,
+                            onReplace = { onRequestReplacement(listOf(filter.id)) },
+                        )
+                    }
                 }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = switcherOpen,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.2f))
+                    .clickable(
+                        interactionSource = null,
+                        indication = null,
+                        onClickLabel = "닫기",
+                        onClick = { switcherOpen = false },
+                    ),
+            )
+        }
+        AnimatedVisibility(
+            visible = switcherOpen,
+            enter = slideInVertically { -it },
+            exit = slideOutVertically { -it },
+            modifier = Modifier.align(Alignment.TopCenter),
+        ) {
+            PurifierSwitchSheet(
+                devices = devices,
+                selectedId = selected.id,
+                onSelect = { id ->
+                    onSelectDevice(id)
+                    switcherOpen = false
+                },
+                onRemove = { id -> pendingRemoveId = id },
+                onAdd = {
+                    switcherOpen = false
+                    addSheetOpen = true
+                },
+            )
+        }
+
+        AnimatedVisibility(
+            visible = removedToastVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 30.dp),
+        ) {
+            DashboardToast(text = "정수기를 제거했습니다")
+        }
+    }
+
+    LaunchedEffect(removedToastVisible) {
+        if (removedToastVisible) {
+            delay(TOAST_VISIBLE_MILLIS)
+            removedToastVisible = false
+        }
+    }
+
+    pendingRemoveId?.let { id ->
+        RemovePurifierDialog(
+            onDismiss = { pendingRemoveId = null },
+            onConfirm = {
+                pendingRemoveId = null
+                switcherOpen = false
+                onRemoveDevice(id)
+                removedToastVisible = true
             },
         )
     }
-    if (editingNickname) {
-        DeviceNicknameDialog(selected.nickname, onDismiss = { editingNickname = false }) {
-            onRenameDevice(it)
-            editingNickname = false
+
+    if (addSheetOpen) {
+        AddPurifierSheet(onDismiss = { addSheetOpen = false })
+    }
+}
+
+private const val TOAST_VISIBLE_MILLIS = 2_000L
+
+@Composable
+private fun ReplacementBanner(
+    copy: ReplacementBannerCopy,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val shape = RoundedCornerShape(12.dp)
+    // Figma 380:2209 gradient start #437DFF is outside the palette; it is used only by this banner.
+    val brush = Brush.horizontalGradient(listOf(Color(0xFF437DFF), colors.GradientMain))
+    val lineStyle = typography.labelMidMedium.copy(fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.sp)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .dropShadow(shape = shape, shadow = Shadow(radius = 24.dp, color = Color.Black.copy(alpha = 0.05f)))
+            .clip(shape)
+            .background(brush, shape)
+            .clickable(role = Role.Button, onClick = onOpen)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 46.dp, height = 44.dp)
+                .background(colors.White.copy(alpha = 0.2f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_notifications_active),
+                contentDescription = null,
+                tint = colors.White,
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    text = copy.filterLabel,
+                    style = typography.gnbLabel.copy(fontWeight = FontWeight.Normal, lineHeight = 22.sp, letterSpacing = (-0.39).sp),
+                    color = colors.PrimaryTint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Box(
+                    modifier = Modifier
+                        .background(colors.Black0Surface.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp),
+                ) {
+                    Text(
+                        text = "교체 예정 알림",
+                        style = typography.gnbLabel.copy(fontWeight = FontWeight.Normal, lineHeight = 22.sp, letterSpacing = (-0.39).sp),
+                        color = colors.White.copy(alpha = 0.9f),
+                    )
+                }
+            }
+            Text(
+                text = copy.headline,
+                style = typography.labelLarge,
+                color = colors.White,
+                modifier = Modifier.semantics { heading() },
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                copy.remainingLabel?.let { Text(text = it, style = lineStyle, color = colors.White) }
+                Text(text = copy.purchaseHint, style = lineStyle, color = colors.White)
+            }
         }
     }
 }
 
 @Composable
 private fun DashboardHeader(
-    devices: List<PurifierDevice>,
-    selected: PurifierDevice,
+    device: PurifierDevice,
+    filterCount: Int,
+    connected: Boolean,
     syncText: String,
-    onSelectDevice: (String) -> Unit,
-    onEditNickname: () -> Unit,
-    onOpenNotifications: () -> Unit,
+    onOpenSwitcher: () -> Unit,
     onOpenDeviceSettings: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val pillShape = RoundedCornerShape(100.dp)
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 18.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Box {
-                Row(
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClickLabel = "정수기 전환", onClick = onOpenSwitcher),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = device.nickname,
+                    style = typography.headSmall,
+                    color = colors.TextMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { expanded = true }
-                        .padding(vertical = 2.dp),
+                        .weight(1f, fill = false)
+                        .semantics { heading() },
+                )
+                Icon(
+                    painter = painterResource(Res.drawable.ic_unfold_more),
+                    contentDescription = null,
+                    tint = colors.TextMain,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Offline badge design awaits the designer (UI-03); muted colors stand in until then.
+                HeaderChip(
+                    text = if (connected) "연결됨" else "연결 끊김",
+                    color = if (connected) colors.Primary else colors.Black50Muted,
+                    showDot = true,
+                )
+                HeaderChip(text = "${filterCount}개 필터", color = colors.Primary)
+                Text(
+                    text = syncText,
+                    style = chipTextStyle(),
+                    color = colors.Black50Muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .dropShadow(
+                    shape = pillShape,
+                    shadow = Shadow(radius = 24.dp, color = Color.Black.copy(alpha = 0.04f), offset = DpOffset(0.dp, 4.dp)),
+                )
+                .clip(pillShape)
+                .background(colors.White, pillShape)
+                .clickable(role = Role.Button, onClick = onOpenDeviceSettings)
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "설정",
+                style = typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
+                color = colors.Black60Body,
+            )
+        }
+    }
+}
+
+@Composable
+internal fun chipTextStyle() = PloCareTheme.typography.gnbLabel.copy(
+    fontWeight = FontWeight.Normal,
+    lineHeight = 22.sp,
+    letterSpacing = (-0.39).sp,
+)
+
+@Composable
+internal fun HeaderChip(
+    text: String,
+    color: Color,
+    showDot: Boolean = false,
+) {
+    Row(
+        modifier = Modifier
+            .heightIn(min = 22.dp)
+            .background(PloCareColor.Black10, RoundedCornerShape(4.dp))
+            .padding(horizontal = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (showDot) {
+            Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
+        }
+        Text(text = text, style = chipTextStyle(), color = color, maxLines = 1)
+    }
+}
+
+@Composable
+private fun FilterGaugeCard(
+    filter: FilterSnapshot,
+    onReplace: () -> Unit,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val urgent = filter.showReplacementRequest
+    val title = filterTitle(filter)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.White, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = selected.nickname,
-                        color = PloCareColor.TextPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = title,
+                        style = typography.labelMidMedium,
+                        color = colors.TextMain,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    Text(
-                        text = "  ▾",
-                        color = PloCareColor.TextSecondary,
-                        fontSize = 16.sp,
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    devices.forEach { device ->
-                        DropdownMenuItem(
-                            text = { Text(device.nickname) },
-                            onClick = {
-                                onSelectDevice(device.id)
-                                expanded = false
-                            },
+                    if (urgent) {
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_error),
+                            contentDescription = "교체 임박",
+                            tint = colors.Primary,
                         )
                     }
-                    DropdownMenuItem(
-                        text = { Text("닉네임 편집") },
-                        onClick = { expanded = false; onEditNickname() },
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = usageOverRated(filter),
+                        style = typography.labelSmall,
+                        color = colors.Black50Muted,
+                        maxLines = 1,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .heightIn(min = 20.dp)
+                            .background(
+                                if (urgent) colors.StatusAlertContainer else colors.Black10,
+                                RoundedCornerShape(4.dp),
+                            )
+                            .padding(horizontal = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = usagePercentLabel(filter),
+                            style = typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (urgent) colors.StatusAlert else colors.Primary,
+                        )
+                    }
+                }
+            }
+            FilterGauge(filter = filter)
+        }
+        ReplaceButton(title = title, urgent = urgent, onClick = onReplace)
+    }
+}
+
+@Composable
+private fun FilterGauge(filter: FilterSnapshot) {
+    val colors = PloCareColor
+    val filled = gaugeFilledCells(filter.exhaustionPercent)
+    val filterColor = colors.filterTypeColor(filter.filterType)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(26.dp)
+            .clearAndSetSemantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(filled / GAUGE_CELL_COUNT.toFloat(), 0f..1f)
+            },
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        repeat(GAUGE_CELL_COUNT) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize()
+                    .background(
+                        if (index < filled) filterColor.copy(alpha = gaugeCellAlpha(index)) else colors.Black0Surface,
+                        RoundedCornerShape(4.dp),
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReplaceButton(
+    title: String,
+    urgent: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = PloCareColor
+    Box(
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .size(45.dp)
+            .dropShadow(
+                shape = CircleShape,
+                shadow = Shadow(radius = 24.dp, color = Color.Black.copy(alpha = 0.03f), offset = DpOffset(0.dp, 4.dp)),
+            )
+            .clip(CircleShape)
+            .background(if (urgent) colors.Primary else colors.Black0Surface, CircleShape)
+            .then(if (urgent) Modifier else Modifier.border(1.dp, colors.Black10, CircleShape))
+            .semantics { contentDescription = "$title 교체" }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "교체",
+            style = PloCareTheme.typography.labelSmall,
+            color = if (urgent) colors.White else colors.Black60Body,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+    }
+}
+
+@Composable
+private fun PurifierSwitchSheet(
+    devices: List<PurifierDevice>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
+    val rowShape = RoundedCornerShape(12.dp)
+    // The last purifier cannot be removed until the zero-purifier screens exist.
+    val canRemove = devices.size > 1
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.White, shape)
+            .border(1.dp, colors.Black10, shape)
+            // Absorb taps on the sheet's padding so they do not reach the scrim behind it.
+            .pointerInput(Unit) { detectTapGestures() }
+            .padding(start = 20.dp, top = 24.dp, end = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            devices.forEach { device ->
+                val isSelected = device.id == selectedId
+                val model = device.modelCode
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(rowShape)
+                        .background(colors.Black0Surface),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(device.id) }
+                            .padding(start = 18.dp, top = 16.dp, bottom = 16.dp, end = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        PloCareCheckMark(checked = isSelected, uncheckedStyle = PloCareCheckboxStyle.OutlineEmpty)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = device.nickname,
+                                style = typography.bodyLarge,
+                                color = colors.TextMain,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (model.isNotEmpty()) {
+                                Text(
+                                    text = model,
+                                    style = typography.labelMidMedium,
+                                    color = colors.Black50Muted,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                    if (canRemove) {
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .clickable(role = Role.Button, onClick = { onRemove(device.id) }),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_delete),
+                                contentDescription = "${device.nickname} 제거",
+                                tint = colors.Black60Body,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        // Add row (358:3194)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(rowShape)
+                .background(colors.Black0Surface)
+                .border(1.dp, colors.Black10, rowShape)
+                .clickable(role = Role.Button, onClick = onAdd)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_add),
+                contentDescription = null,
+                tint = colors.Black60Body,
+            )
+            Text(text = "정수기 추가", style = typography.bodyLarge, color = colors.Black60Body)
+        }
+        // Handle (349:1894): 58x5 bar 8dp into a 34dp frame
+        Box(
+            modifier = Modifier.fillMaxWidth().height(34.dp),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .width(58.dp)
+                    .height(5.dp)
+                    .background(colors.Black10, RoundedCornerShape(100.dp)),
+            )
+        }
+    }
+}
+
+// Remove confirmation modal (360:3990)
+@Composable
+private fun RemovePurifierDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val shape = RoundedCornerShape(16.dp)
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .width(320.dp)
+                .background(colors.White, shape)
+                .border(1.dp, colors.Black10, shape)
+                .padding(start = 20.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "정수기를 제거합니다",
+                    style = typography.titleLarge,
+                    color = colors.TextMain,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = "한 번 제거한 정수기 데이터는 되돌릴 수 없어요.\n그래도 삭제하시겠습니까?",
+                    style = typography.labelMidMedium,
+                    color = colors.GrayChateau,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PloCareButton(
+                    text = "취소",
+                    onClick = onDismiss,
+                    variant = PloCareButtonVariant.Secondary,
+                    modifier = Modifier.weight(1f),
+                )
+                PloCareButton(
+                    text = "삭제",
+                    onClick = onConfirm,
+                    variant = PloCareButtonVariant.Danger,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+// Toast (358:3673)
+@Composable
+private fun DashboardToast(text: String) {
+    Box(
+        modifier = Modifier
+            .background(PloCareColor.TextMain, RoundedCornerShape(8.dp))
+            .semantics { liveRegion = LiveRegionMode.Polite }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(text = text, style = PloCareTheme.typography.labelMidMedium, color = PloCareColor.White)
+    }
+}
+
+// Add purifier sheet (247:6104). Maker and model lists are not wired yet (no catalog), and
+// confirming only closes the sheet until the add flow is built.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddPurifierSheet(onDismiss: () -> Unit) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    var name by rememberSaveable { mutableStateOf("") }
+    var makerGroup by rememberSaveable { mutableStateOf(MakerGroup.MAJOR) }
+
+    PloCareBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "정수기를 추가합니다",
+                    style = typography.titleLarge,
+                    color = colors.TextMain,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(text = "모델 및 필터를 확인해주세요", style = typography.labelMidMedium, color = colors.GrayChateau)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                SheetField(label = "정수기 이름") {
+                    PloCareTextField(value = name, onValueChange = { name = it }, placeholder = "")
+                }
+                SheetField(label = "제조사 구분") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MakerGroup.entries.forEach { group ->
+                            PloCareChip(
+                                text = group.label,
+                                selected = group == makerGroup,
+                                onClick = { makerGroup = group },
+                            )
+                        }
+                    }
+                }
+                SheetField(label = "제조사") {
+                    SelectField(label = "제조사")
+                }
+                SheetField(label = "모델명") {
+                    SelectField(label = "모델명")
+                    Text(
+                        text = "정수기 옆면•뒷면 모델 라벨의 QR•바코드를 찍으면 자동 선택돼요",
+                        style = typography.labelMid,
+                        color = colors.GradientMain,
                     )
                 }
             }
-            Text(
-                text = syncText,
-                color = PloCareColor.TextTertiary,
-                fontSize = 12.sp,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            HeaderIconButton(label = "알림", glyph = "🔔", onClick = onOpenNotifications)
-            HeaderIconButton(label = "설정", glyph = "⚙", onClick = onOpenDeviceSettings)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PloCareButton(
+                    text = "취소",
+                    onClick = onDismiss,
+                    variant = PloCareButtonVariant.Secondary,
+                    modifier = Modifier.weight(1f),
+                )
+                PloCareButton(
+                    text = "정수기 추가",
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun HeaderIconButton(
+private fun SheetField(
     label: String,
-    glyph: String,
-    onClick: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(PloCareColor.SurfaceCard)
-            .border(1.dp, PloCareColor.SurfaceBorder, CircleShape)
-            .semantics { contentDescription = label }
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = glyph, color = PloCareColor.TextPrimary, fontSize = 14.sp)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = label, style = PloCareTheme.typography.labelMid, color = PloCareColor.TextMain)
+        content()
     }
 }
 
+/** Figma select box (247:6159): 48dp surface with a trailing chevron. Options are not wired yet. */
 @Composable
-private fun AiBriefingBanner(snapshot: DashboardSnapshot) {
-    val icon = if (snapshot.forecastStage == ForecastStage.COLD_START) "📊" else "🤖"
-    Column(
+private fun SelectField(label: String, value: String = "") {
+    val colors = PloCareColor
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(PloCareColor.SurfaceCard)
-            .border(1.dp, PloCareColor.SurfaceBorder, RoundedCornerShape(14.dp))
-            .padding(14.dp),
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.Black0Surface)
+            .clickable(role = Role.DropdownList, onClickLabel = "$label 선택", onClick = {})
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "$icon ${briefingTitle(snapshot)}",
-            color = PloCareColor.TextPrimary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            text = value,
+            style = PloCareTheme.typography.labelLarge,
+            color = colors.TextMain,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = briefingCaption(snapshot),
-            color = PloCareColor.TextTertiary,
-            fontSize = 11.sp,
+        Icon(
+            painter = painterResource(Res.drawable.ic_chevron_down),
+            contentDescription = null,
+            tint = colors.TextMain,
         )
     }
 }
 
-@Composable
-private fun AlertBanner(
-    accent: Color,
-    title: String,
-    actionLabel: String,
-    onAction: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(PloCareColor.SurfaceCard)
-            .border(1.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
-            .padding(14.dp),
-    ) {
-        Text(
-            text = title,
-            color = PloCareColor.TextPrimary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = onAction,
-            modifier = Modifier.fillMaxWidth().height(40.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = accent),
-            shape = RoundedCornerShape(10.dp),
-        ) {
-            Text(
-                text = actionLabel,
-                color = PloCareColor.BgDeep,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-    }
-}
-
-@Composable
-private fun VisitTicketCard(
-    whenLabel: String,
-    technician: String?,
-    targets: String,
-    requestDetails: List<String>,
-    onReview: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(PloCareColor.SurfaceCard)
-            .border(1.dp, PloCareColor.SurfaceBorder, RoundedCornerShape(14.dp))
-            .padding(14.dp),
-    ) {
-        Text(
-            text = if (technician == null) "방문 요청 · 로컬 미리보기" else "방문 케어 예시 일정",
-            color = PloCareColor.TextSecondary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = whenLabel + technician?.let { " ($it 테크니션 방문 예정)" }.orEmpty(),
-            color = PloCareColor.TextPrimary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = targets,
-            color = PloCareColor.TextSecondary,
-            fontSize = 12.sp,
-        )
-        requestDetails.forEach { detail ->
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(detail, color = PloCareColor.TextSecondary, fontSize = 12.sp)
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Button(
-            onClick = onReview,
-            modifier = Modifier.fillMaxWidth().height(40.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
-            shape = RoundedCornerShape(10.dp),
-        ) {
-            Text(
-                text = "필터 관리로",
-                color = PloCareColor.BgDeep,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-    }
-}

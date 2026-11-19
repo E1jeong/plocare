@@ -54,22 +54,28 @@ class ConsumerDeviceSession(
     }
 
     internal fun requestVisit(draft: VisitRequestDraft) {
-        val date = requireNotNull(draft.date)
-        val window = requireNotNull(draft.window)
+        // The local ticket holds one slot; the first preference stands in until center confirmation exists.
+        val first = requireNotNull(draft.preferences.firstOrNull()) { "No visit preference" }
         repository.requestVisit(
             selectedDevice().id,
             VisitTicket(
-                date, window.startHour, 0, null, draft.selectedFilterIds.toList(),
-                windowEndHour = window.endHour,
+                first.date, first.window.startHour, 0, null, draft.selectedFilterIds.toList(),
+                windowEndHour = first.window.endHour,
                 contact = draft.contact.trim(),
                 address = draft.address.trim(),
-                notes = draft.notes.trim(),
             ),
         )
     }
 
     fun renameSelectedDevice(nickname: String) {
         repository.renameDevice(selectedDevice().id, nickname)
+    }
+
+    fun removeDevice(id: String) {
+        repository.removeDevice(id)
+        if (selectedId.value == id) {
+            savedStateHandle[CONSUMER_DEVICE_ID_KEY] = devices.value.first().id
+        }
     }
 
     fun refreshSelectedTelemetry(at: Instant = Clock.System.now()) {

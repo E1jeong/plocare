@@ -70,6 +70,13 @@ class PurifierRepository(
         }
     }
 
+    /** Removes a purifier locally; the last one stays because the zero-purifier screens are not built yet. */
+    fun removeDevice(deviceId: String) {
+        require(device(deviceId) != null) { "Unknown device: $deviceId" }
+        require(_devices.value.size > 1) { "Cannot remove the last purifier" }
+        _devices.value = _devices.value.filterNot { it.id == deviceId }
+    }
+
     fun refreshTelemetry(deviceId: String, at: Instant) {
         _devices.value = _devices.value.map { device ->
             if (device.id == deviceId) device.withTelemetryAt(at) else device

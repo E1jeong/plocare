@@ -76,8 +76,8 @@ enum class ConsumerTabItem(
     val title: String
 ) {
     DASHBOARD("대시보드"),
-    FILTER_CARE("필터 관리·설정"),
-    WATER_REPORT("물 사용 리포트"),
+    FILTER_CARE("필터"),
+    WATER_REPORT("리포트"),
     MY_PAGE("마이페이지")
 }
 

@@ -176,6 +176,32 @@ fun PloCareCheckbox(
     enabled: Boolean = true,
     uncheckedStyle: PloCareCheckboxStyle = PloCareCheckboxStyle.SubtleCheck,
 ) {
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .clip(RoundedCornerShape(6.dp))
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Checkbox,
+                onValueChange = onCheckedChange,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        PloCareCheckMark(checked = checked, uncheckedStyle = uncheckedStyle)
+    }
+}
+
+/**
+ * Non-interactive Figma `circle/` mark (20dp box in a 24dp frame) for rows that own the
+ * selection semantics themselves, such as selectable list rows.
+ */
+@Composable
+fun PloCareCheckMark(
+    checked: Boolean,
+    modifier: Modifier = Modifier,
+    uncheckedStyle: PloCareCheckboxStyle = PloCareCheckboxStyle.SubtleCheck,
+) {
     val colors = PloCareColor
     val boxShape = RoundedCornerShape(4.dp)
     val boxColor = when {
@@ -194,19 +220,7 @@ fun PloCareCheckbox(
         else -> null
     }
 
-    Box(
-        modifier = modifier
-            .minimumInteractiveComponentSize()
-            .size(24.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .toggleable(
-                value = checked,
-                enabled = enabled,
-                role = Role.Checkbox,
-                onValueChange = onCheckedChange,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = modifier.size(24.dp), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
                 .size(20.dp)

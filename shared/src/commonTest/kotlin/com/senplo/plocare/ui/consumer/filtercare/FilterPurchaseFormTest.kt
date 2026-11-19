@@ -4,7 +4,6 @@ import com.senplo.plocare.navigation.Route
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FilterPurchaseFormTest {
@@ -25,21 +24,11 @@ class FilterPurchaseFormTest {
     }
 
     @Test
-    fun validationRejectsIncompleteDraft() {
-        val base = validDraft()
-        assertEquals("배송 주소를 입력해 주세요.", validateFilterPurchase(base.copy(address = "  ")))
-        assertEquals("연락처를 입력해 주세요.", validateFilterPurchase(base.copy(contact = "010-123")))
-        assertEquals(
-            "구매할 필터를 선택해 주세요.",
-            validateFilterPurchase(base.copy(selectedFilterIds = emptySet())),
-        )
-        assertEquals("구매 또는 구독을 선택해 주세요.", validateFilterPurchase(base.copy(mode = null)))
-    }
-
-    @Test
-    fun validationAcceptsCompleteDraft() {
-        assertNull(validateFilterPurchase(validDraft()))
-        assertNull(validateFilterPurchase(validDraft().copy(mode = FilterSupplyMode.SUBSCRIPTION)))
+    fun supplyModeCopyFollowsFigmaTabsAndPolicyDiscount() {
+        assertEquals("1회 구매", supplyModeTabLabel(FilterSupplyMode.ONE_TIME))
+        assertEquals("정기 구독 • 10% 할인", supplyModeTabLabel(FilterSupplyMode.SUBSCRIPTION))
+        assertEquals("구매하기", purchaseCtaLabel(FilterSupplyMode.ONE_TIME))
+        assertEquals("구독 시작하기", purchaseCtaLabel(FilterSupplyMode.SUBSCRIPTION))
     }
 
     @Test
@@ -54,11 +43,4 @@ class FilterPurchaseFormTest {
             assertFalse(detail.contains("구독이 시작"))
         }
     }
-
-    private fun validDraft() = FilterPurchaseDraft(
-        contact = "010-1234-5678",
-        address = DEFAULT_VISIT_ADDRESS,
-        selectedFilterIds = setOf("kitchen-1"),
-        mode = FilterSupplyMode.ONE_TIME,
-    )
 }

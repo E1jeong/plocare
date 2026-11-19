@@ -6,47 +6,66 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.senplo.plocare.domain.filter.DashboardSnapshot
-import com.senplo.plocare.domain.filter.FilterSnapshot
-import com.senplo.plocare.ui.consumer.ConsumerCard
-import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
+import com.senplo.plocare.ui.components.PloCareButton
+import com.senplo.plocare.ui.components.PloCareButtonSize
+import com.senplo.plocare.ui.components.PloCareCheckMark
+import com.senplo.plocare.ui.components.PloCareDateCell
+import com.senplo.plocare.ui.components.PloCareDateCellState
 import com.senplo.plocare.ui.theme.PloCareColor
+import com.senplo.plocare.ui.theme.PloCareTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.ic_back
+import plocare.shared.generated.resources.ic_check
+import plocare.shared.generated.resources.ic_chevron_forward
+import plocare.shared.generated.resources.ic_verified_user
 import kotlin.time.Clock
 
+private val WEEKDAY_HEADERS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+// Figma 08 방문 케어 예약 (114:591)
 @Composable
 internal fun VisitRequestScreen(
     snapshot: DashboardSnapshot,
@@ -54,295 +73,422 @@ internal fun VisitRequestScreen(
     onBack: () -> Unit,
     onRequested: (VisitRequestDraft) -> Unit,
     onSubmitted: () -> Unit,
+    onOpenMyPage: () -> Unit = {},
 ) {
-    val timeZone = remember { TimeZone.currentSystemDefault() }
-    val today = remember { Clock.System.now().toLocalDateTime(timeZone).date }
-    val dateOptions = remember(today) { visitDateOptions(today) }
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val today = remember { Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date }
+    val calendarDays = remember(today) { visitCalendarDays(today) }
     val initialSelected = remember(preselectedFilterIds, snapshot.filters) {
-        when {
-            preselectedFilterIds.isNotEmpty() -> preselectedFilterIds.filter { id ->
-                snapshot.filters.any { it.id == id }
-            }.toSet()
-            else -> snapshot.filters.filter { it.showReplacementRequest }.map { it.id }.toSet()
-        }
+        preselectedFilterIds.filter { id -> snapshot.filters.any { it.id == id } }
+            .ifEmpty { snapshot.filters.filter { it.showReplacementRequest }.map { it.id } }
     }
 
-    var contact by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf(DEFAULT_VISIT_ADDRESS) }
-    var selectedFilterIds by remember { mutableStateOf(initialSelected) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(dateOptions.firstOrNull()) }
-    var selectedWindow by remember { mutableStateOf<VisitTimeWindow?>(null) }
-    var notes by remember { mutableStateOf("") }
-    var formError by remember { mutableStateOf<String?>(null) }
-    var submitted by remember { mutableStateOf(false) }
+    var selectedFilterIds by rememberSaveable { mutableStateOf(initialSelected) }
+    var preferredDates by remember { mutableStateOf(listOf<LocalDate>()) }
+    var windows by remember { mutableStateOf(mapOf<LocalDate, VisitTimeWindow>()) }
+    var submitted by rememberSaveable { mutableStateOf(false) }
+    val canSubmit = selectedFilterIds.isNotEmpty() && preferredDates.size == MAX_VISIT_PREFERENCES
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(PloCareColor.BrandNavy),
+            .background(colors.Background)
+            .statusBarsPadding(),
     ) {
+        // Header (114:594)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClick = onBack)
+                    .padding(vertical = 4.dp, horizontal = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(painter = painterResource(Res.drawable.ic_back), contentDescription = "뒤로", tint = colors.TextMain)
+                Text(
+                    text = "방문 케어 예약",
+                    style = typography.titleLarge,
+                    color = colors.TextMain,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .imePadding()
-                .navigationBarsPadding()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp),
+                .padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "← 필터 관리",
-                color = PloCareColor.AquaTeal,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .padding(vertical = 8.dp),
+            AddressCard(onOpenMyPage = onOpenMyPage)
+            FilterChipsField(
+                snapshot = snapshot,
+                selectedIds = selectedFilterIds,
+                onToggle = { id ->
+                    selectedFilterIds = if (id in selectedFilterIds) selectedFilterIds - id else selectedFilterIds + id
+                },
             )
-            Text(
-                text = "방문 케어 예약",
-                color = PloCareColor.TextPrimary,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+            VisitDateCard(
+                today = today,
+                days = calendarDays,
+                preferredDates = preferredDates,
+                windows = windows,
+                onToggleDate = { date -> preferredDates = toggleVisitDate(preferredDates, date) },
+                onWindowChange = { date, window -> windows = windows + (date to window) },
             )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "${snapshot.device.nickname} · 희망 일정과 교체 필터를 선택하세요.",
-                color = PloCareColor.TextSecondary,
-                fontSize = 13.sp,
-            )
-            Spacer(Modifier.height(18.dp))
+        }
 
-            if (submitted) {
-                ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "방문 요청을 앱 세션에 저장했습니다.",
-                        color = PloCareColor.TextPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
+        // Bottom action (114:1310)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 16.dp),
+        ) {
+            PloCareButton(
+                text = "방문 요청 보내기",
+                onClick = {
+                    onRequested(
+                        VisitRequestDraft(
+                            contact = DEFAULT_VISIT_CONTACT_MASKED,
+                            address = "$DEFAULT_VISIT_ADDRESS $DEFAULT_VISIT_ADDRESS_DETAIL",
+                            selectedFilterIds = selectedFilterIds.toSet(),
+                            preferences = preferredDates.map { date ->
+                                VisitPreference(date, windows[date] ?: VisitTimeWindow.MORNING)
+                            },
+                        ),
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "로컬 미리보기입니다. 파트너에게 전달되거나 서버에 저장되지 않습니다.",
-                        color = PloCareColor.TextSecondary,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(
-                        onClick = onSubmitted,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
-                    ) {
-                        Text("대시보드로", color = PloCareColor.BgDeep, fontWeight = FontWeight.Bold)
-                    }
-                }
-            } else {
-                ConsumerSectionTitle(title = "연락처 · 주소")
-                Spacer(Modifier.height(10.dp))
-                VisitField(
-                    value = contact,
-                    onValueChange = { contact = it },
-                    label = "연락처",
-                    keyboardType = KeyboardType.Phone,
-                )
-                Spacer(Modifier.height(10.dp))
-                VisitField(
-                    value = address,
-                    onValueChange = { address = it },
-                    label = "방문 주소",
-                    keyboardType = KeyboardType.Text,
-                )
-                Spacer(Modifier.height(22.dp))
-                ConsumerSectionTitle(title = "교체 필터", caption = "묶음 교체가 필요한 필터는 미리 선택되어 있습니다.")
-                Spacer(Modifier.height(10.dp))
-                snapshot.filters.forEach { filter ->
-                    FilterSelectRow(
-                        filter = filter,
-                        selected = filter.id in selectedFilterIds,
-                        onToggle = {
-                            selectedFilterIds = if (filter.id in selectedFilterIds) {
-                                selectedFilterIds - filter.id
-                            } else {
-                                selectedFilterIds + filter.id
-                            }
-                        },
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                Spacer(Modifier.height(12.dp))
-                ConsumerSectionTitle(title = "희망 일정", caption = "영업일 기준 이틀 이후부터 예약할 수 있습니다.")
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    dateOptions.forEach { date ->
-                        ChoiceChip(
-                            label = visitDateChipLabel(date),
-                            selected = selectedDate == date,
-                            onClick = { selectedDate = date },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VisitTimeWindow.entries.forEach { window ->
-                        ChoiceChip(
-                            label = window.label,
-                            selected = selectedWindow == window,
-                            onClick = { selectedWindow = window },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(22.dp))
-                ConsumerSectionTitle(title = "요청 사항")
-                Spacer(Modifier.height(10.dp))
-                VisitField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = "반려동물, 주차, 싱크대 잠금 등",
-                    keyboardType = KeyboardType.Text,
-                    singleLine = false,
-                )
-                formError?.let {
-                    Spacer(Modifier.height(12.dp))
-                    Text(it, color = PloCareColor.StatusAlert, fontSize = 13.sp)
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        val draft = VisitRequestDraft(
-                                contact = contact,
-                                address = address,
-                                selectedFilterIds = selectedFilterIds,
-                                date = selectedDate,
-                                window = selectedWindow,
-                                notes = notes,
-                            )
-                        val error = validateVisitRequest(draft, today)
-                        if (error == null) {
-                            formError = null
-                            onRequested(draft)
-                            submitted = true
-                        } else {
-                            formError = error
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PloCareColor.AquaTeal),
-                ) {
-                    Text("방문 요청하기", color = PloCareColor.BgDeep, fontWeight = FontWeight.Bold)
-                }
-            }
-            Spacer(Modifier.height(24.dp))
+                    submitted = true
+                },
+                size = PloCareButtonSize.Large,
+                enabled = canSubmit,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
-}
 
-@Composable
-internal fun FilterSelectRow(
-    filter: FilterSnapshot,
-    selected: Boolean,
-    onToggle: () -> Unit,
-) {
-    ConsumerCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle),
-        borderColor = if (selected) PloCareColor.AquaTeal else PloCareColor.SurfaceBorder,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (selected) "✓" else "○",
-                color = if (selected) PloCareColor.AquaTeal else PloCareColor.TextTertiary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Column(Modifier.padding(start = 10.dp).weight(1f)) {
-                Text(
-                    "${filter.stage}단 ${filter.name}",
-                    color = PloCareColor.TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    "권장 통수량의 ${filter.exhaustionPercent.toInt()}% 사용",
-                    color = PloCareColor.TextSecondary,
-                    fontSize = 11.sp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun ChoiceChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .height(40.dp)
-            .border(
-                width = 1.dp,
-                color = if (selected) PloCareColor.AquaTeal else PloCareColor.SurfaceBorder,
-                shape = RoundedCornerShape(10.dp),
-            )
-            .background(
-                color = if (selected) PloCareColor.AquaTeal.copy(alpha = 0.16f) else PloCareColor.SurfaceCard,
-                shape = RoundedCornerShape(10.dp),
-            )
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (selected) PloCareColor.AquaTeal else PloCareColor.TextSecondary,
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            textAlign = TextAlign.Center,
+    if (submitted) {
+        VisitSubmittedDialog(
+            onConfirm = {
+                submitted = false
+                onSubmitted()
+            },
         )
     }
 }
 
 @Composable
-internal fun VisitField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    keyboardType: KeyboardType,
-    singleLine: Boolean = true,
+private fun AddressCard(onOpenMyPage: () -> Unit) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .background(colors.White, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(text = DEFAULT_VISIT_ADDRESS, style = typography.labelMidMedium, color = colors.TextMain)
+                Text(
+                    text = "$DEFAULT_VISIT_ADDRESS_DETAIL • $DEFAULT_VISIT_CONTACT_MASKED",
+                    style = typography.labelSmall,
+                    color = colors.Black50Muted,
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClick = onOpenMyPage)
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "마이페이지",
+                    style = typography.gnbLabel.copy(fontWeight = FontWeight.Bold, lineHeight = 22.sp, letterSpacing = (-0.39).sp),
+                    color = colors.Primary,
+                )
+                Icon(
+                    painter = painterResource(Res.drawable.ic_chevron_forward),
+                    contentDescription = null,
+                    tint = colors.Primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        // Safe-number notice (114:1334)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.Black0Surface, RoundedCornerShape(8.dp))
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(painter = painterResource(Res.drawable.ic_verified_user), contentDescription = null, tint = colors.Primary)
+            Text(text = "기사님께는 안심번호로만 전달돼요", style = typography.labelMidMedium, color = colors.Primary)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FilterChipsField(
+    snapshot: DashboardSnapshot,
+    selectedIds: List<String>,
+    onToggle: (String) -> Unit,
 ) {
-    OutlinedTextField(
-        modifier = Modifier.fillMaxWidth(),
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        singleLine = singleLine,
-        minLines = if (singleLine) 1 else 3,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = keyboardType,
-            imeAction = if (singleLine) ImeAction.Next else ImeAction.Default,
-        ),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = PloCareColor.TextPrimary,
-            unfocusedTextColor = PloCareColor.TextPrimary,
-            focusedBorderColor = PloCareColor.AquaTeal,
-            unfocusedBorderColor = PloCareColor.SurfaceBorder,
-            focusedLabelColor = PloCareColor.AquaTeal,
-            unfocusedLabelColor = PloCareColor.TextSecondary,
-            cursorColor = PloCareColor.AquaTeal,
-            focusedContainerColor = PloCareColor.SurfaceCard,
-            unfocusedContainerColor = PloCareColor.SurfaceCard,
-        ),
-    )
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val chipShape = RoundedCornerShape(8.dp)
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(text = "교체할 필터", style = typography.labelMid, color = colors.TextMain)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            snapshot.filters.forEach { filter ->
+                val selected = filter.id in selectedIds
+                Row(
+                    modifier = Modifier
+                        .clip(chipShape)
+                        .then(
+                            if (selected) {
+                                Modifier.background(colors.White, chipShape).border(1.dp, colors.Black10, chipShape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle(filter.id) })
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (selected) {
+                        Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = painterResource(Res.drawable.ic_check),
+                                contentDescription = null,
+                                tint = colors.GradientMain,
+                            )
+                        }
+                    }
+                    Text(
+                        text = "${filter.stage}단 ${filter.name}",
+                        style = typography.labelMidMedium,
+                        color = if (selected) colors.TextMain else colors.Black40Ghost,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VisitDateCard(
+    today: LocalDate,
+    days: List<LocalDate>,
+    preferredDates: List<LocalDate>,
+    windows: Map<LocalDate, VisitTimeWindow>,
+    onToggleDate: (LocalDate) -> Unit,
+    onWindowChange: (LocalDate, VisitTimeWindow) -> Unit,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .background(colors.White, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "방문 날짜 선택",
+                style = typography.titleMid.copy(fontWeight = FontWeight.Medium),
+                color = colors.TextMain,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                text = "${preferredDates.size}/$MAX_VISIT_PREFERENCES",
+                style = typography.labelMidMedium,
+                color = colors.Primary,
+            )
+        }
+        Column {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                WEEKDAY_HEADERS.forEach { label ->
+                    Box(
+                        modifier = Modifier.weight(1f).height(41.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(text = label, style = typography.bodySmall, color = colors.TextMain)
+                    }
+                }
+            }
+            days.chunked(7).forEach { week ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    week.forEach { date ->
+                        PloCareDateCell(
+                            dayText = date.day.toString(),
+                            state = when {
+                                date in preferredDates -> PloCareDateCellState.Selected
+                                isVisitDateSelectable(date, today) -> PloCareDateCellState.Active
+                                else -> PloCareDateCellState.Disabled
+                            },
+                            onClick = { onToggleDate(date) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+        HorizontalDivider(thickness = 1.dp, color = colors.Black10)
+        Column(
+            modifier = Modifier.padding(top = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            preferredDates.forEach { date ->
+                PreferenceRow(
+                    date = date,
+                    window = windows[date] ?: VisitTimeWindow.MORNING,
+                    onRemove = { onToggleDate(date) },
+                    onWindowChange = { onWindowChange(date, it) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PreferenceRow(
+    date: LocalDate,
+    window: VisitTimeWindow,
+    onRemove: () -> Unit,
+    onWindowChange: (VisitTimeWindow) -> Unit,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val label = visitPreferenceLabel(date)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 34.dp)
+            .padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .toggleable(value = true, role = Role.Checkbox, onValueChange = { onRemove() }),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PloCareCheckMark(checked = true)
+            Text(text = label, style = typography.labelMidMedium, color = colors.TextMain)
+        }
+        // AM/PM mini tab (114:1404)
+        Row(
+            modifier = Modifier
+                .background(colors.Black0Surface, RoundedCornerShape(8.dp))
+                .padding(4.dp)
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            VisitTimeWindow.entries.forEach { option ->
+                val selected = option == window
+                val shape = RoundedCornerShape(8.dp)
+                Box(
+                    modifier = Modifier
+                        .clip(shape)
+                        .then(
+                            if (selected) {
+                                Modifier
+                                    .background(colors.White, shape)
+                                    .border(1.dp, colors.White.copy(alpha = 0.4f), shape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .selectable(selected = selected, role = Role.RadioButton) { onWindowChange(option) }
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = option.label,
+                        style = typography.labelSmall,
+                        color = if (selected) colors.Primary else colors.Black50Muted,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VisitSubmittedDialog(onConfirm: () -> Unit) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val shape = RoundedCornerShape(16.dp)
+    // No Figma frame yet: the local preview reuses the modal styling of 360:3990.
+    Dialog(onDismissRequest = onConfirm) {
+        Column(
+            modifier = Modifier
+                .width(320.dp)
+                .background(colors.White, shape)
+                .border(1.dp, colors.Black10, shape)
+                .padding(start = 20.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = "방문 요청을 앱 세션에 저장했습니다.",
+                    style = typography.titleLarge,
+                    color = colors.TextMain,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = "로컬 미리보기입니다. 파트너에게 전달되거나 서버에 저장되지 않습니다.",
+                    style = typography.labelMidMedium,
+                    color = colors.GrayChateau,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            PloCareButton(text = "확인", onClick = onConfirm, modifier = Modifier.fillMaxWidth())
+        }
+    }
 }

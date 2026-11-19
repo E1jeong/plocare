@@ -1,33 +1,36 @@
 package com.senplo.plocare.ui.consumer.dashboard
 
 import com.senplo.plocare.domain.filter.DashboardSnapshot
+import com.senplo.plocare.domain.filter.FilterLifeCalculator
 import com.senplo.plocare.domain.filter.FilterSnapshot
-import com.senplo.plocare.domain.filter.ForecastStage
-import com.senplo.plocare.domain.filter.VisitTicket
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlin.math.ceil
 import kotlin.math.round
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 
-internal fun remainingOverRated(filter: FilterSnapshot): String =
-    "${formatLiters(filter.remainingL)} / ${formatLiters(filter.ratedCapacityL)}"
+internal const val GAUGE_CELL_COUNT = 10
 
-internal fun dDayLabel(remainingDays: Int): String =
-    if (remainingDays <= 0) "수명 초과" else "D-${remainingDays}일"
+/**
+ * Days between the recommended purchase date and the expected replacement date. Figma banner 380:2209
+ * pairs a 11/10 replacement with an 11/3 purchase date; the server will own this value later.
+ */
+internal const val PURCHASE_LEAD_DAYS = 7
 
-internal fun formatLiters(value: Double): String =
-    "${formatIntWithComma(round(value).toInt())} L"
+/** The banner pushes the content down, then closes (screen-flow spec 4.1); the delay is not specified anywhere. */
+internal const val BANNER_VISIBLE_MILLIS = 5_000L
+
+// Figma 349:1675 gauge: cell fill opacity rises in pairs (30/50/70/85/100%).
+private val gaugeCellAlphas = listOf(0.3f, 0.3f, 0.5f, 0.5f, 0.7f, 0.7f, 0.85f, 0.85f, 1f, 1f)
 
 internal fun formatIntWithComma(value: Int): String {
     val sign = if (value < 0) "-" else ""
     val digits = kotlin.math.abs(value).toString()
     val grouped = digits.reversed().chunked(3).joinToString(",").reversed()
     return sign + grouped
-}
-
-internal fun formatOneDecimal(value: Double): String {
-    val tenths = round(value * 10.0).toInt()
-    return if (tenths % 10 == 0) (tenths / 10).toString() else "${tenths / 10}.${tenths % 10}"
 }
 
 internal fun formatKoreanMonthDay(date: LocalDate): String =
@@ -54,62 +57,61 @@ internal fun syncLabel(elapsed: Duration): String {
     }
 }
 
-internal fun briefingTitle(snapshot: DashboardSnapshot): String {
-    val avg = formatOneDecimal(snapshot.device.dailyAvgL)
-    val date = formatKoreanMonthDay(snapshot.representativeDate)
-    val dDay = if (snapshot.representativeRemainingDays <= 0) {
-        "즉시 교체"
+internal fun filterTitle(filter: FilterSnapshot): String = "${filter.stage}단 ${filter.name}"
+
+/** `사용 L / 정격 L`; cycle-only filters (no rated liters, `CAT-01`) show their expiry date instead. */
+internal fun usageOverRated(filter: FilterSnapshot): String =
+    if (filter.ratedCapacityL > 0.0) {
+        "${formatIntWithComma(round(filter.usageL).toInt())}/${formatIntWithComma(round(filter.ratedCapacityL).toInt())}L"
     } else {
-        "D-${snapshot.representativeRemainingDays}"
+        "${formatKoreanMonthDay(filter.effectiveDate)} 주기 만료"
     }
-    return when (snapshot.forecastStage) {
-        ForecastStage.COLD_START ->
-            "[${snapshot.device.householdSize}인 가구 기준 예측] 일평균 ${avg} L/일 ➔ 목표일: $date ($dDay)"
-        ForecastStage.MATURE ->
-            "[14일 사용량 기반 데모 예측] 일평균 ${avg} L/일 ➔ 목표일: $date ($dDay)"
+
+internal fun usagePercentLabel(filter: FilterSnapshot): String =
+    "${filter.exhaustionPercent.roundToInt().coerceAtLeast(0)}%"
+
+internal fun gaugeFilledCells(exhaustionPercent: Double): Int =
+    ceil(exhaustionPercent / (100.0 / GAUGE_CELL_COUNT)).toInt().coerceIn(0, GAUGE_CELL_COUNT)
+
+internal fun gaugeCellAlpha(index: Int): Float = gaugeCellAlphas[index.coerceIn(0, GAUGE_CELL_COUNT - 1)]
+
+internal data class ReplacementBannerCopy(
+    val filterId: String,
+    val filterLabel: String,
+    val headline: String,
+    val remainingLabel: String?,
+    val purchaseHint: String,
+)
+
+/**
+ * Local stand-in for the server-timed replacement banner: shows the filter with the nearest effective
+ * replacement date once it is within [FilterLifeCalculator.BUNDLE_PROXIMITY_DAYS] days.
+ */
+internal fun replacementBanner(snapshot: DashboardSnapshot): ReplacementBannerCopy? {
+    val nearest = snapshot.filters.minByOrNull { it.effectiveRemainingDays } ?: return null
+    if (nearest.effectiveRemainingDays > FilterLifeCalculator.BUNDLE_PROXIMITY_DAYS) return null
+
+    val date = nearest.effectiveDate
+    val headline = if (nearest.effectiveRemainingDays <= 0) {
+        "교체 시기가 지났어요"
+    } else {
+        "${formatKoreanMonthDay(date)}(${formatKoreanWeekday(date)}) 교체 예상"
     }
-}
-
-internal fun briefingCaption(snapshot: DashboardSnapshot): String = when (snapshot.forecastStage) {
-    ForecastStage.COLD_START ->
-        "설치 초기 가구원 수와 로컬 예시 사용량을 바탕으로 표시한 예측입니다."
-    ForecastStage.MATURE ->
-        "로컬 사용량 예시로 계산했습니다. 서버의 매일 자정 예측은 아직 연결되지 않았습니다."
-}
-
-internal fun overCapacityMessage(filter: FilterSnapshot): String {
-    val excessL = formatIntWithComma(round(filter.excessL).toInt())
-    return "${filter.stage}단계 필터 정격 수명 초과! (+${filter.excessDays}일 / ${excessL}L 초과 음용 중) 정수 성능 보장을 위해 즉시 교체하세요."
-}
-
-internal fun bundleMessage(snapshot: DashboardSnapshot): String? {
-    val bundle = snapshot.bundle ?: return null
-    val stages = joinStages(bundle.stageLabels)
-    return "출장비 절약 특허 추천! ${stages} 필터 교체 시기가 ${bundle.deltaDays}일 차이로 인접해요. 함께 교체하고 출장비 1회를 아끼세요."
-}
-
-internal fun visitWhen(ticket: VisitTicket): String {
-    val date = formatKoreanMonthDay(ticket.scheduledDate)
-    val weekday = formatKoreanWeekday(ticket.scheduledDate)
-    val minute = ticket.minute.toString().padStart(2, '0')
-    val start = "${ticket.hour}:${minute}"
-    val time = ticket.windowEndHour?.let { "$start–$it:00" } ?: start
-    return "${date}(${weekday}) $time"
-}
-
-internal fun visitTargets(ticket: VisitTicket, filters: List<FilterSnapshot>): String {
-    val names = ticket.targetFilterIds.mapNotNull { id ->
-        filters.find { it.id == id }?.let { "${it.stage}단계 ${it.name}" }
+    val purchaseBy = date.minus(PURCHASE_LEAD_DAYS, DateTimeUnit.DAY)
+    val purchaseHint = if (purchaseBy > snapshot.today) {
+        "${formatKoreanMonthDay(purchaseBy)}까지 구매하면 제때 받아요"
+    } else {
+        "지금 구매하면 가장 빨리 받아요"
     }
-    return "대상: ${names.joinToString(", ")} 묶음 교체"
-}
-
-internal fun selfReplaceSummary(filter: FilterSnapshot, totalCumulativeL: Double): String =
-    "「${filter.stage}단계 ${filter.name}」의 기준점만 ${formatLiters(totalCumulativeL)}로 갱신됩니다. 다른 필터와 정수기 총 누적 통수량은 그대로입니다."
-
-internal fun joinStages(labels: List<String>): String = when (labels.size) {
-    0 -> ""
-    1 -> labels[0]
-    2 -> "${labels[0]}과 ${labels[1]}"
-    else -> labels.dropLast(1).joinToString(", ") + ", " + labels.last()
+    return ReplacementBannerCopy(
+        filterId = nearest.id,
+        filterLabel = filterTitle(nearest),
+        headline = headline,
+        remainingLabel = if (nearest.ratedCapacityL > 0.0 && nearest.remainingL > 0.0) {
+            "남은 ${formatIntWithComma(round(nearest.remainingL).toInt())}L"
+        } else {
+            null
+        },
+        purchaseHint = purchaseHint,
+    )
 }
