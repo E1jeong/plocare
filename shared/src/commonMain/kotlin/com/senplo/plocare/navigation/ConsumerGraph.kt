@@ -19,6 +19,9 @@ import com.senplo.plocare.ui.consumer.filtercare.VisitRequestScreen
 import com.senplo.plocare.ui.consumer.filtercare.decodeVisitFilterIds
 import com.senplo.plocare.ui.consumer.filtercare.encodeVisitFilterIds
 import com.senplo.plocare.ui.consumer.mypage.ContactAddressScreen
+import com.senplo.plocare.ui.consumer.support.FaqScreen
+import com.senplo.plocare.ui.consumer.support.InquiryScreen
+import com.senplo.plocare.ui.consumer.support.MyInquiriesScreen
 import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareTheme
 
@@ -82,8 +85,33 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                 onOpenContactAddress = {
                     navController.navigate(Route.ContactAddress) { launchSingleTop = true }
                 },
+                onOpenFaq = { navController.navigate(Route.Faq) { launchSingleTop = true } },
+                onOpenInquiry = { navController.navigate(Route.Inquiry) { launchSingleTop = true } },
             )
         }
+    }
+
+    // Figma 12 1:1 문의 (120:721, 120:1157) and 13 FAQ (120:1591). Sending is not stored yet.
+    composable<Route.Inquiry> {
+        InquiryScreen(
+            onBack = { navController.popBackStack() },
+            onOpenMyInquiries = { navController.navigate(Route.MyInquiries) { launchSingleTop = true } },
+            onSubmit = { navController.popBackStack() },
+        )
+    }
+
+    composable<Route.MyInquiries> {
+        MyInquiriesScreen(
+            onBack = { navController.popBackStack() },
+            onOpenFaq = { navController.navigate(Route.Faq) { launchSingleTop = true } },
+        )
+    }
+
+    composable<Route.Faq> {
+        FaqScreen(
+            onBack = { navController.popBackStack() },
+            onOpenInquiry = { navController.navigate(Route.Inquiry) { launchSingleTop = true } },
+        )
     }
 
     // Figma 11 연락처·주소 (114:1721). Saving is not persisted yet; it returns to MyPage.

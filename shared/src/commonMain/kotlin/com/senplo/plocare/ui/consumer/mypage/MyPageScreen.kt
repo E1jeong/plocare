@@ -58,6 +58,8 @@ fun MyPageScreen(
     onOpenDeviceSettings: (deviceId: String) -> Unit = {},
     onOpenContactAddress: () -> Unit = {},
     onBookVisit: () -> Unit = {},
+    onOpenFaq: () -> Unit = {},
+    onOpenInquiry: () -> Unit = {},
 ) {
     val colors = PloCareColor
     val typography = PloCareTheme.typography
@@ -137,7 +139,7 @@ fun MyPageScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SectionTitle("이용 • 설정")
-                SettingsCard()
+                SettingsCard(onOpenFaq = onOpenFaq, onOpenInquiry = onOpenInquiry)
             }
         }
     }
@@ -384,10 +386,13 @@ private fun NavigationRow(title: String, subtitle: String, onClick: () -> Unit) 
     }
 }
 
-// Settings list (79:3664). Destinations (subscription, history, FAQ, inquiry) do not exist yet and
-// the replacement alert toggle is local state only.
+// Settings list (79:3664). Subscription and history destinations do not exist yet and the
+// replacement alert toggle is local state only.
 @Composable
-private fun SettingsCard() {
+private fun SettingsCard(
+    onOpenFaq: () -> Unit,
+    onOpenInquiry: () -> Unit,
+) {
     var replacementAlert by rememberSaveable { mutableStateOf(false) }
     ListCard {
         NavigationRow(title = "구독 • 결제 관리", subtitle = "결제 수단 • 구독 해지", onClick = {})
@@ -407,12 +412,12 @@ private fun SettingsCard() {
             )
         }
         ListDivider()
-        NavigationRow(title = "자주 묻는 질문", subtitle = "종류별 Q&A • 먼저 찾아보기", onClick = {})
+        NavigationRow(title = "자주 묻는 질문", subtitle = "종류별 Q&A • 먼저 찾아보기", onClick = onOpenFaq)
         ListDivider()
         NavigationRow(
             title = "1:1 문의 • 약관",
             subtitle = "전화 대신 문의 → 답변 또는 담당자 전화(안심번호)",
-            onClick = {},
+            onClick = onOpenInquiry,
         )
     }
 }

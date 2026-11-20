@@ -41,6 +41,8 @@ fun ConsumerMainScreen(
     onOpenSettings: () -> Unit = {},
     onOpenDeviceSettings: (deviceId: String) -> Unit = {},
     onOpenContactAddress: () -> Unit = {},
+    onOpenFaq: () -> Unit = {},
+    onOpenInquiry: () -> Unit = {},
 ) {
     // Figma GNB/customer (74:878)
     val tabItems = ConsumerTabItem.entries.map { tab ->
@@ -89,6 +91,8 @@ fun ConsumerMainScreen(
                     onOpenDeviceSettings = onOpenDeviceSettings,
                     onOpenContactAddress = onOpenContactAddress,
                     onBookVisit = { onBookVisit(emptyList()) },
+                    onOpenFaq = onOpenFaq,
+                    onOpenInquiry = onOpenInquiry,
                 )
             }
         }
