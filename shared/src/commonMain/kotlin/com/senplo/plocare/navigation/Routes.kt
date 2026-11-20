@@ -98,7 +98,6 @@ enum class PartnerTab(
 ) {
     WORK("업무"),
     VISITS("방문 관리"),
-    CUSTOMERS("고객 조회"),
     INVENTORY("재고 관리"),
     MY("마이페이지")
 }

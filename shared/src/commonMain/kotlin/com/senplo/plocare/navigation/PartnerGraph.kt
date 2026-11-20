@@ -22,6 +22,7 @@ import com.senplo.plocare.ui.partner.findPartnerVisit
 import com.senplo.plocare.ui.partner.partnerVisitViews
 import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareTheme
+import kotlinx.datetime.toLocalDateTime
 
 internal const val PARTNER_TAB_KEY = "partnerTab"
 
@@ -34,21 +35,27 @@ fun NavGraphBuilder.partnerGraph(navController: NavHostController) {
         val currentTab = runCatching { PartnerTab.valueOf(tabName) }
             .getOrDefault(PartnerTab.WORK)
         val visits by session.visits.collectAsState()
+        val requests by session.requests.collectAsState()
         val devices by session.repository.devices.collectAsState()
-        val loadedStock by session.loadedStock.collectAsState()
-        val loadedConfirmed by session.loadedConfirmed.collectAsState()
+        val stock by session.stock.collectAsState()
+        val stockLog by session.stockLog.collectAsState()
         val now by session.now.collectAsState()
         val visitViews = remember(visits, devices, now) {
             partnerVisitViews(visits, devices, now, session.timeZone)
         }
         PloCareTheme(audience = AppAudience.PARTNER) {
             PartnerMainScreen(
+                today = remember(now) { now.toLocalDateTime(session.timeZone).date },
                 currentTab = currentTab,
                 visitViews = visitViews,
-                loadedStock = loadedStock,
-                loadedConfirmed = loadedConfirmed,
+                requests = requests,
+                stock = stock,
+                stockLog = stockLog,
                 onAdjustStock = session::adjustStock,
-                onToggleLoadedConfirmation = session::toggleLoadedConfirmation,
+                onSetStock = session::setStockQuantity,
+                onAddStock = session::addStockItem,
+                onMoveVisit = session::moveVisit,
+                onConfirmRequest = session::confirmRequest,
                 onTabChange = { entry.savedStateHandle[PARTNER_TAB_KEY] = it.name },
                 onOpenCustomer = { customerId ->
                     navController.navigate(Route.CustomerWorkspace(customerId)) {

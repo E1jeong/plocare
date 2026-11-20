@@ -1,95 +1,80 @@
 package com.senplo.plocare.ui.partner
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.senplo.plocare.navigation.PartnerTab
+import com.senplo.plocare.ui.components.PloCareBottomBar
+import com.senplo.plocare.ui.components.PloCareBottomBarItem
 import com.senplo.plocare.ui.theme.PloCareColor
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
 import plocare.shared.generated.resources.Res
-import plocare.shared.generated.resources.nav_home
-import plocare.shared.generated.resources.nav_my_page
-import plocare.shared.generated.resources.nav_partner_customers
-import plocare.shared.generated.resources.nav_partner_inventory
-import plocare.shared.generated.resources.nav_partner_visits
+import plocare.shared.generated.resources.gnb_inventory
+import plocare.shared.generated.resources.gnb_mypage
+import plocare.shared.generated.resources.gnb_visits
+import plocare.shared.generated.resources.gnb_work
 
 @Composable
 internal fun PartnerMainScreen(
+    today: LocalDate,
     currentTab: PartnerTab = PartnerTab.WORK,
     visitViews: List<PartnerVisitView> = emptyList(),
-    loadedStock: Map<Int, Int> = emptyMap(),
-    loadedConfirmed: Boolean = false,
-    onAdjustStock: (Int, Int) -> Unit = { _, _ -> },
-    onToggleLoadedConfirmation: () -> Unit = {},
+    requests: List<PartnerVisitRequest> = emptyList(),
+    stock: List<StockItem> = emptyList(),
+    stockLog: List<StockLogEntry> = emptyList(),
+    onAdjustStock: (itemId: String, delta: Int) -> Unit = { _, _ -> },
+    onSetStock: (itemId: String, quantity: Int) -> Unit = { _, _ -> },
+    onAddStock: (maker: String, filterName: String) -> Boolean = { _, _ -> false },
     onTabChange: (PartnerTab) -> Unit = {},
     onOpenCustomer: (String) -> Unit = {},
+    onMoveVisit: (customerId: String, offset: Int) -> Unit = { _, _ -> },
+    onConfirmRequest: (requestId: String, optionIndex: Int) -> Boolean = { _, _ -> false },
 ) {
+    // Figma GNB/partner (126:1033)
+    val tabItems = PartnerTab.entries.map { tab ->
+        PloCareBottomBarItem(id = tab, label = tab.title, icon = painterResource(tab.iconResource()))
+    }
 
     Scaffold(
-        containerColor = PloCareColor.BrandNavy,
+        containerColor = PloCareColor.White,
         bottomBar = {
-            NavigationBar(containerColor = PloCareColor.SurfaceDark, tonalElevation = 8.dp) {
-                PartnerTab.entries.forEach { tab ->
-                    val selected = currentTab == tab
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = { onTabChange(tab) },
-                        icon = {
-                            Icon(
-                                painter = painterResource(tab.iconResource()),
-                                contentDescription = tab.title,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        },
-                        label = {
-                            Text(tab.title, fontSize = 10.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PloCareColor.AquaTeal,
-                            selectedTextColor = PloCareColor.AquaTeal,
-                            unselectedIconColor = PloCareColor.TextTertiary,
-                            unselectedTextColor = PloCareColor.TextSecondary,
-                            indicatorColor = PloCareColor.SurfaceCard,
-                        ),
-                    )
-                }
-            }
+            PloCareBottomBar(
+                items = tabItems,
+                selectedId = currentTab,
+                onSelect = onTabChange,
+            )
         },
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(PloCareColor.BrandNavy, PloCareColor.BgDeep)))
                 .padding(innerPadding),
         ) {
             when (currentTab) {
                 PartnerTab.WORK -> WorkDashboardTab(
                     visitViews = visitViews,
-                    onInventoryClick = { onTabChange(PartnerTab.INVENTORY) },
-                    onOpenCustomer = onOpenCustomer,
+                    stock = stock,
+                    today = today,
+                    onReorderVisits = { onTabChange(PartnerTab.VISITS) },
                 )
-                PartnerTab.VISITS -> VisitManagementTab(visitViews = visitViews, onOpenCustomer = onOpenCustomer)
-                PartnerTab.CUSTOMERS -> CustomerSearchTab(visitViews = visitViews, onOpenCustomer = onOpenCustomer)
+                PartnerTab.VISITS -> VisitManagementTab(
+                    visitViews = visitViews,
+                    requests = requests,
+                    onOpenCustomer = onOpenCustomer,
+                    onMoveVisit = onMoveVisit,
+                    onConfirmRequest = onConfirmRequest,
+                )
                 PartnerTab.INVENTORY -> InventoryTab(
-                    visitViews,
-                    loadedStock,
-                    loadedConfirmed,
-                    onAdjustStock,
-                    onToggleLoadedConfirmation,
+                    visitViews = visitViews,
+                    stock = stock,
+                    stockLog = stockLog,
+                    onAdjustStock = onAdjustStock,
+                    onSetStock = onSetStock,
+                    onAddStock = onAddStock,
                 )
                 PartnerTab.MY -> PartnerMyPageTab()
             }
@@ -98,9 +83,8 @@ internal fun PartnerMainScreen(
 }
 
 private fun PartnerTab.iconResource() = when (this) {
-    PartnerTab.WORK -> Res.drawable.nav_home
-    PartnerTab.VISITS -> Res.drawable.nav_partner_visits
-    PartnerTab.CUSTOMERS -> Res.drawable.nav_partner_customers
-    PartnerTab.INVENTORY -> Res.drawable.nav_partner_inventory
-    PartnerTab.MY -> Res.drawable.nav_my_page
+    PartnerTab.WORK -> Res.drawable.gnb_work
+    PartnerTab.VISITS -> Res.drawable.gnb_visits
+    PartnerTab.INVENTORY -> Res.drawable.gnb_inventory
+    PartnerTab.MY -> Res.drawable.gnb_mypage
 }

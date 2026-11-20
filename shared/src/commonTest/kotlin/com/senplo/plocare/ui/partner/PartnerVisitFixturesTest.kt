@@ -24,10 +24,7 @@ class PartnerVisitFixturesTest {
     }
 
     @Test
-    fun searchMatchesCustomerNumberAndSkipsCompleted() {
-        assertEquals(listOf("C-1024"), searchPartnerVisits("1024").map { it.customerId })
-        assertTrue(searchPartnerVisits("").none { it.completed })
-        assertTrue(searchPartnerVisits("C-4096").isEmpty())
+    fun unknownOrBlankCustomerIdFindsNothing() {
         assertNull(findPartnerVisit("C-0000"))
         assertNull(findPartnerVisit("  "))
     }
