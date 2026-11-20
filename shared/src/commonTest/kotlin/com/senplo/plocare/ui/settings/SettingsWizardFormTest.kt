@@ -27,52 +27,39 @@ class SettingsWizardFormTest {
     }
 
     @Test
-    fun bleAndConnectivityAndFlowTestValidate() {
-        val connected = SettingsDraft(connectedDeviceName = "PloCare Sensor A12", connectedDeviceId = "ble-a12")
-        assertEquals("연결할 센서를 선택해 주세요.", validateSettingsStep(SettingsDraft()))
-        assertNull(validateSettingsStep(connected))
-
-        val wifi = connected.copy(step = SettingsStep.CONNECTIVITY, householdMode = true)
-        assertEquals("Wi-Fi 이름을 입력해 주세요.", validateSettingsStep(wifi))
+    fun wizardHasFourStepsInFigmaOrder() {
         assertEquals(
-            "Wi-Fi 비밀번호를 입력해 주세요.",
-            validateSettingsStep(wifi.copy(wifiSsid = "Home_5G")),
+            listOf("정수기 설정", "센서 연결", "정수기 연결", "통신 연결"),
+            SettingsStep.entries.map { it.title },
         )
-        assertNull(validateSettingsStep(wifi.copy(wifiSsid = "Home_5G", wifiPassword = "secret")))
-
-        val flow = connected.copy(step = SettingsStep.FLOW_TEST)
-        assertEquals("측정 용량(mL)을 입력하거나 테스트를 건너뛰세요.", validateSettingsStep(flow))
-        assertEquals("측정 용량은 500~2,000 mL만 허용됩니다.", validateSettingsStep(flow.copy(measuredMl = "100")))
-        assertNull(validateSettingsStep(flow.copy(measuredMl = "900")))
-        assertNull(validateSettingsStep(flow.copy(skippedFlowTest = true)))
+        val last = SettingsDraft(step = SettingsStep.NETWORK)
+        assertEquals(SettingsStep.NETWORK, last.advance().step)
+        assertEquals(SettingsStep.PURIFIER, SettingsDraft().back().step)
     }
 
     @Test
-    fun hydraulicRejectsOutOfRangePressure() {
-        val draft = SettingsDraft(
-            step = SettingsStep.HYDRAULIC,
-            connectedDeviceName = "A12",
-            pressureKgf = "9",
-        )
-        assertEquals("수압은 0.5~5.0 kgf/cm² 범위입니다.", validateSettingsStep(draft))
-        assertNull(validateSettingsStep(draft.copy(pressureKgf = "2.0")))
-    }
+    fun eachScanStepNeedsItsCodeBeforeMovingOn() {
+        assertTrue(SettingsDraft().canAdvance())
 
-    @Test
-    fun scanResultsFillSensorModelAndWifi() {
-        val draft = SettingsDraft()
+        val sensorStep = SettingsDraft(step = SettingsStep.SENSOR)
+        assertFalse(sensorStep.canAdvance())
+        val sensor = assertNotNull(sensorStep.applyScan(ScanTarget.SENSOR, "  A12 "))
+        assertEquals("A12", sensor.sensorCode)
+        assertTrue(sensor.canAdvance())
 
-        val sensor = assertNotNull(draft.applyScan(ScanTarget.SENSOR, "  PLC-SN-0042 "))
-        assertEquals("PLC-SN-0042", sensor.connectedDeviceId)
-        assertNull(validateSettingsStep(sensor))
+        val modelStep = sensor.advance()
+        assertFalse(modelStep.canAdvance())
+        val model = assertNotNull(modelStep.applyScan(ScanTarget.MODEL, "CHP-7300R"))
+        assertEquals("CHP-7300R", model.scannedModelCode)
+        assertEquals(sampleModelChoice, model.model)
+        assertTrue(model.canAdvance())
 
-        assertEquals("CHP-7300R", draft.applyScan(ScanTarget.MODEL, "CHP-7300R")?.model)
-
-        val wifi = assertNotNull(draft.copy(householdMode = false).applyScan(ScanTarget.WIFI, "WIFI:T:WPA;S:PloCare_5G;P:secret123;;"))
-        assertTrue(wifi.householdMode)
+        val networkStep = model.advance()
+        assertFalse(networkStep.canAdvance())
+        val wifi = assertNotNull(networkStep.applyScan(ScanTarget.WIFI, "WIFI:T:WPA;S:PloCare_5G;P:secret123;;"))
         assertEquals("PloCare_5G", wifi.wifiSsid)
         assertEquals("secret123", wifi.wifiPassword)
-        assertNull(validateSettingsStep(wifi.copy(step = SettingsStep.CONNECTIVITY)))
+        assertTrue(wifi.canAdvance())
     }
 
     @Test
@@ -81,5 +68,20 @@ class SettingsWizardFormTest {
         assertNull(draft.applyScan(ScanTarget.SENSOR, "   "))
         assertNull(draft.applyScan(ScanTarget.MODEL, ""))
         assertNull(draft.applyScan(ScanTarget.WIFI, "https://example.com"))
+    }
+
+    @Test
+    fun summaryShowsUnknownUntilModelIsSet() {
+        assertTrue(SettingsDraft().modelSummaryRows().all { it.second == UNKNOWN_VALUE })
+        assertEquals(
+            listOf("제조사 구분" to "대기업", "제조사" to "제조사 A", "모델명" to "A-IN900", "필터 구성" to "4개"),
+            SettingsDraft(model = sampleModelChoice).modelSummaryRows(),
+        )
+        assertEquals("제조사 A• A-IN900 으로 인식했어요", sampleModelChoice.recognizedHeadline())
+        assertEquals("필터 4개 구성이 자동으로 들어갑니다", sampleModelChoice.filterCountLine())
+        assertEquals(
+            listOf("1단 세디먼트", "2단 프리카본", "3단 포스트카본", "4단 UF 멤브레인"),
+            sampleModelChoice.filters.map { it.label },
+        )
     }
 }

@@ -40,7 +40,7 @@ import com.senplo.plocare.ui.theme.PloCareTheme
 import org.jetbrains.compose.resources.painterResource
 import plocare.shared.generated.resources.Res
 import plocare.shared.generated.resources.ic_back
-import plocare.shared.generated.resources.ic_scan
+import plocare.shared.generated.resources.ic_split_scene
 
 data class PloCareBottomBarItem<T>(
     val id: T,
@@ -178,8 +178,8 @@ fun PloCareWizardHeader(
     currentStep: Int,
     totalSteps: Int,
     onBackClick: () -> Unit,
-    onScanClick: (() -> Unit)? = null,
-    scanLabel: String = "스캔",
+    onTestClick: (() -> Unit)? = null,
+    testLabel: String = "테스트",
     backLabel: String = "뒤로",
     modifier: Modifier = Modifier,
 ) {
@@ -220,7 +220,8 @@ fun PloCareWizardHeader(
                 )
             }
 
-            if (onScanClick != null) {
+            // Figma step-1 `테스트` pill (79:2408); the 4-step wizard has no header scan button.
+            if (onTestClick != null) {
                 val pillShape = RoundedCornerShape(100.dp)
                 Row(
                     modifier = Modifier
@@ -234,18 +235,18 @@ fun PloCareWizardHeader(
                         )
                         .clip(pillShape)
                         .background(colors.White, pillShape)
-                        .clickable(role = Role.Button, onClick = onScanClick)
+                        .clickable(role = Role.Button, onClick = onTestClick)
                         .padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        painter = painterResource(Res.drawable.ic_scan),
+                        painter = painterResource(Res.drawable.ic_split_scene),
                         contentDescription = null,
                         tint = colors.Primary,
                     )
                     Text(
-                        text = scanLabel,
+                        text = testLabel,
                         // Figma component body/large: Regular 400, 15/22, -0.03em
                         style = typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
                         color = colors.Primary,

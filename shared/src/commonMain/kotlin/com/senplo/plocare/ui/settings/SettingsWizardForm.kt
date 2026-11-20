@@ -1,150 +1,113 @@
 package com.senplo.plocare.ui.settings
 
-import com.senplo.plocare.domain.filter.FilterLifeCalculator
-import com.senplo.plocare.domain.filter.MAX_FILTER_STAGES
-import com.senplo.plocare.domain.filter.MIN_FILTER_STAGES
+import com.senplo.plocare.domain.filter.FilterType
+import com.senplo.plocare.domain.filter.MakerGroup
 import com.senplo.plocare.scanner.ScanFrame
 import com.senplo.plocare.scanner.parseWifiQr
 
-internal enum class SettingsStep(val title: String, val caption: String) {
-    BLE("BLE 페어링", "근처 PloCare 센서를 선택해 연결하세요."),
-    MODEL("모델·필터 프리셋", "정수기 브랜드와 필터 단수를 확인하세요."),
-    HYDRAULIC("배관·밸브·수압", "Kv 미리보기는 읽기 전용입니다."),
-    CONNECTIVITY("통신 연결", "가정용 Wi-Fi 또는 상업용 NB-IoT를 설정하세요."),
-    FLOW_TEST("1분 유량 테스트", "측정값을 입력하거나 기본 Kv를 유지하고 건너뛰세요."),
-    SUMMARY("요약·동기화", "설정을 확인하고 기기에 저장합니다."),
+/** Figma 4-step wizard (user decision 2026-11-19): 79:2246 → 79:3086 → 79:3305 / 94:4155 → 94:4460. */
+internal enum class SettingsStep(val title: String) {
+    PURIFIER("정수기 설정"),
+    SENSOR("센서 연결"),
+    MODEL("정수기 연결"),
+    NETWORK("통신 연결"),
 }
 
-internal data class StubBleDevice(
-    val id: String,
-    val name: String,
-    val rssi: Int,
+internal data class ModelFilterTag(val stage: Int, val name: String, val type: FilterType) {
+    val label: String get() = "${stage}단 $name"
+}
+
+internal data class PurifierModelChoice(
+    val makerGroup: MakerGroup,
+    val makerName: String,
+    val modelName: String,
+    val filters: List<ModelFilterTag>,
 )
 
-internal val stubBleDevices = listOf(
-    StubBleDevice("ble-a12", "PloCare Sensor A12", -42),
-    StubBleDevice("ble-b08", "PloCare Sensor B08", -61),
+/**
+ * Figma 94:4155 sample model. There is no model catalog yet, so manual selection and any scanned model
+ * code resolve to this sample (user decision 2026-11-20).
+ */
+internal val sampleModelChoice = PurifierModelChoice(
+    makerGroup = MakerGroup.MAJOR,
+    makerName = "제조사 A",
+    modelName = "A-IN900",
+    filters = listOf(
+        ModelFilterTag(1, "세디먼트", FilterType.SEDIMENT),
+        ModelFilterTag(2, "프리카본", FilterType.PRE_CARBON),
+        ModelFilterTag(3, "포스트카본", FilterType.POST_CARBON),
+        ModelFilterTag(4, "UF 멤브레인", FilterType.MEMBRANE),
+    ),
 )
-
-internal val settingsBrands = listOf("Cuckoo", "Coway", "SK매직", "LG", "기타")
-internal val pipeSizes = listOf("1/4\"", "3/8\"", "1/2\"")
-internal val valveTypes = listOf("감압 고정형", "조절형 피팅")
 
 internal data class SettingsDraft(
-    val step: SettingsStep = SettingsStep.BLE,
-    val connectedDeviceId: String? = null,
-    val connectedDeviceName: String? = null,
-    val brand: String = "Cuckoo",
-    val model: String = "CP-IN900",
-    val stageCount: Int = 4,
-    val pipeSize: String = "1/4\"",
-    val valveType: String = "감압 고정형",
-    val pressureKgf: String = "2.0",
-    val householdMode: Boolean = true,
+    val step: SettingsStep = SettingsStep.PURIFIER,
+    /** No pressure picker exists yet (Figma has no option list), so this stays null for now. */
+    val pressureKgf: Double? = null,
+    val sensorCode: String? = null,
+    val scannedModelCode: String? = null,
+    val model: PurifierModelChoice? = null,
     val wifiSsid: String = "",
     val wifiPassword: String = "",
-    val nbiotChecked: Boolean = false,
-    val measuredMl: String = "",
-    val skippedFlowTest: Boolean = false,
 )
 
-internal fun SettingsDraft.pressureOrNull(): Double? = pressureKgf.trim().toDoubleOrNull()
-
-internal fun SettingsDraft.previewKv(): Double {
-    val pressure = pressureOrNull() ?: 2.0
-    return FilterLifeCalculator.previewKv(pipeSize, pressure)
+/** Step 1 has no required input; each scan step needs its code before moving on. */
+internal fun SettingsDraft.canAdvance(): Boolean = when (step) {
+    SettingsStep.PURIFIER -> true
+    SettingsStep.SENSOR -> sensorCode != null
+    SettingsStep.MODEL -> model != null
+    SettingsStep.NETWORK -> wifiSsid.isNotBlank()
 }
 
-internal fun SettingsDraft.calibratedKv(): Double {
-    if (skippedFlowTest) return previewKv()
-    val measured = measuredMl.trim().toDoubleOrNull() ?: return previewKv()
-    return FilterLifeCalculator.calibrateKv(previewKv(), measured)
+internal enum class ScanTarget(val frame: ScanFrame) {
+    SENSOR(ScanFrame.QR),
+    MODEL(ScanFrame.BARCODE),
+    WIFI(ScanFrame.QR),
 }
 
-internal fun SettingsStep.nextOrNull(): SettingsStep? {
-    val values = SettingsStep.entries
-    val index = values.indexOf(this)
-    return values.getOrNull(index + 1)
+internal fun SettingsStep.scanTarget(): ScanTarget? = when (this) {
+    SettingsStep.PURIFIER -> null
+    SettingsStep.SENSOR -> ScanTarget.SENSOR
+    SettingsStep.MODEL -> ScanTarget.MODEL
+    SettingsStep.NETWORK -> ScanTarget.WIFI
 }
 
-internal fun SettingsStep.previousOrNull(): SettingsStep? {
-    val values = SettingsStep.entries
-    val index = values.indexOf(this)
-    return values.getOrNull(index - 1)
-}
-
-internal fun validateSettingsStep(draft: SettingsDraft): String? = when (draft.step) {
-    SettingsStep.BLE ->
-        if (draft.connectedDeviceName.isNullOrBlank()) "연결할 센서를 선택해 주세요." else null
-    SettingsStep.MODEL -> when {
-        draft.brand.isBlank() || draft.model.isBlank() -> "브랜드와 모델을 입력해 주세요."
-        draft.stageCount !in MIN_FILTER_STAGES..MAX_FILTER_STAGES -> "필터 단수는 1~10단만 설정할 수 있습니다."
-        else -> null
-    }
-    SettingsStep.HYDRAULIC -> {
-        val pressure = draft.pressureOrNull()
-        when {
-            pressure == null -> "수압을 숫자로 입력해 주세요."
-            pressure < 0.5 || pressure > 5.0 -> "수압은 0.5~5.0 kgf/cm² 범위입니다."
-            draft.pipeSize !in pipeSizes -> "배관 규격을 선택해 주세요."
-            else -> null
-        }
-    }
-    SettingsStep.CONNECTIVITY -> when {
-        draft.householdMode && draft.wifiSsid.trim().isEmpty() -> "Wi-Fi 이름을 입력해 주세요."
-        draft.householdMode && draft.wifiPassword.isEmpty() -> "Wi-Fi 비밀번호를 입력해 주세요."
-        !draft.householdMode && !draft.nbiotChecked -> "NB-IoT 신호 확인을 완료해 주세요."
-        else -> null
-    }
-    SettingsStep.FLOW_TEST -> {
-        if (draft.skippedFlowTest) {
-            null
-        } else {
-            val measured = draft.measuredMl.trim().toDoubleOrNull()
-            when {
-                measured == null -> "측정 용량(mL)을 입력하거나 테스트를 건너뛰세요."
-                measured < FilterLifeCalculator.FLOW_TEST_MIN_ML ||
-                    measured > FilterLifeCalculator.FLOW_TEST_MAX_ML ->
-                    "측정 용량은 500~2,000 mL만 허용됩니다."
-                else -> null
-            }
-        }
-    }
-    SettingsStep.SUMMARY -> null
-}
-
-internal enum class ScanTarget(
-    val frame: ScanFrame,
-    val title: String,
-    val guide: String,
-    val manualLabel: String?,
-    val invalidMessage: String,
-) {
-    SENSOR(ScanFrame.QR, "센서 QR 스캔", "센서의 QR을 사각형 안에 맞춰 주세요.", "센서 ID", "센서 QR을 읽지 못했습니다."),
-    MODEL(ScanFrame.BARCODE, "모델 바코드 스캔", "정수기 옆면·뒷면 모델 라벨의 바코드를 비춰 주세요.", "모델명", "모델 바코드를 읽지 못했습니다."),
-    // Manual Wi-Fi entry stays on the step's own SSID/password fields.
-    WIFI(ScanFrame.QR, "Wi-Fi QR 스캔", "공유기의 Wi-Fi QR을 사각형 안에 맞춰 주세요.", null, "Wi-Fi QR이 아닙니다. 공유기 Wi-Fi QR인지 확인해 주세요."),
-}
-
-/** Applies scanned or typed text for [target]; null when the text is unusable. */
+/** Applies scanned text for [target]; null when the text is unusable. */
 internal fun SettingsDraft.applyScan(target: ScanTarget, raw: String): SettingsDraft? {
     val text = raw.trim()
     if (text.isEmpty()) return null
     return when (target) {
-        ScanTarget.SENSOR -> copy(connectedDeviceId = text, connectedDeviceName = text)
-        ScanTarget.MODEL -> copy(model = text)
+        ScanTarget.SENSOR -> copy(sensorCode = text)
+        ScanTarget.MODEL -> copy(scannedModelCode = text, model = sampleModelChoice)
         ScanTarget.WIFI -> parseWifiQr(text)?.let { wifi ->
-            copy(householdMode = true, wifiSsid = wifi.ssid, wifiPassword = wifi.password)
+            copy(wifiSsid = wifi.ssid, wifiPassword = wifi.password)
         }
     }
 }
 
 internal fun SettingsDraft.advance(): SettingsDraft {
-    val next = step.nextOrNull() ?: return this
+    val next = SettingsStep.entries.getOrNull(step.ordinal + 1) ?: return this
     return copy(step = next)
 }
 
 internal fun SettingsDraft.back(): SettingsDraft {
-    val previous = step.previousOrNull() ?: return this
+    val previous = SettingsStep.entries.getOrNull(step.ordinal - 1) ?: return this
     return copy(step = previous)
 }
+
+internal const val UNKNOWN_VALUE = "알 수 없음"
+
+/** Step-1 summary rows (79:2246): label to value, `알 수 없음` until a model is set. */
+internal fun SettingsDraft.modelSummaryRows(): List<Pair<String, String>> {
+    val model = model
+    return listOf(
+        "제조사 구분" to (model?.makerGroup?.label ?: UNKNOWN_VALUE),
+        "제조사" to (model?.makerName ?: UNKNOWN_VALUE),
+        "모델명" to (model?.modelName ?: UNKNOWN_VALUE),
+        "필터 구성" to (model?.let { "${it.filters.size}개" } ?: UNKNOWN_VALUE),
+    )
+}
+
+internal fun PurifierModelChoice.recognizedHeadline(): String = "$makerName• $modelName 으로 인식했어요"
+
+internal fun PurifierModelChoice.filterCountLine(): String = "필터 ${filters.size}개 구성이 자동으로 들어갑니다"
