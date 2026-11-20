@@ -26,6 +26,9 @@ sealed interface Route {
     ) : Route
 
     @Serializable
+    data object ContactAddress : Route
+
+    @Serializable
     data object PartnerMain : Route
 
     @Serializable

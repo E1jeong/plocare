@@ -174,7 +174,6 @@ fun HomeDashboardScreen(
                 DashboardHeader(
                     device = selected,
                     filterCount = snapshot.filters.size,
-                    connected = !snapshot.sensorStale,
                     syncText = syncLabel(now - selected.lastTelemetryAt),
                     onOpenSwitcher = { switcherOpen = true },
                     onOpenDeviceSettings = onOpenDeviceSettings,
@@ -350,7 +349,6 @@ private fun ReplacementBanner(
 private fun DashboardHeader(
     device: PurifierDevice,
     filterCount: Int,
-    connected: Boolean,
     syncText: String,
     onOpenSwitcher: () -> Unit,
     onOpenDeviceSettings: () -> Unit,
@@ -397,12 +395,9 @@ private fun DashboardHeader(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Offline badge design awaits the designer (UI-03); muted colors stand in until then.
-                HeaderChip(
-                    text = if (connected) "연결됨" else "연결 끊김",
-                    color = if (connected) colors.Primary else colors.Black50Muted,
-                    showDot = true,
-                )
+                // Figma shows only `연결됨` (349:1886). A not-connected default screen will come from the
+                // designer; until then the badge stays fixed (2026-11-20 user decision).
+                HeaderChip(text = "연결됨", color = colors.Primary, showDot = true)
                 HeaderChip(text = "${filterCount}개 필터", color = colors.Primary)
                 Text(
                     text = syncText,
@@ -797,7 +792,7 @@ private fun DashboardToast(text: String) {
 // confirming only closes the sheet until the add flow is built.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AddPurifierSheet(onDismiss: () -> Unit) {
+internal fun AddPurifierSheet(onDismiss: () -> Unit) {
     val colors = PloCareColor
     val typography = PloCareTheme.typography
     var name by rememberSaveable { mutableStateOf("") }

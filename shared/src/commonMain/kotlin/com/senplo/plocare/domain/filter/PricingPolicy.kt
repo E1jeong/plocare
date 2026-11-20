@@ -16,6 +16,9 @@ interface PricingPolicy {
     val subscriptionDiscountPercent: Int
     val visitServiceBaseFeeKrw: Int
 
+    /** Annual fee of re-renting a new purifier, the Water Report's reference comparison. */
+    val annualRentalFeeKrw: Int
+
     fun filterUnitPriceKrw(filterType: FilterType): Int = defaultFilterUnitPriceKrw
 
     fun purchaseSubtotalKrw(
@@ -37,6 +40,8 @@ data class SamplePricingPolicy(
     override val defaultFilterUnitPriceKrw: Int = 24_000,
     override val subscriptionDiscountPercent: Int = 10,
     override val visitServiceBaseFeeKrw: Int = 15_000,
+    // Figma 05 Water Report sample (79:3889).
+    override val annualRentalFeeKrw: Int = 334_800,
     private val filterPricesByType: Map<FilterType, Int> = emptyMap(),
 ) : PricingPolicy {
     override fun filterUnitPriceKrw(filterType: FilterType): Int =

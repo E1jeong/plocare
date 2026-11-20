@@ -22,6 +22,34 @@ object DashboardFixtures {
         )
     }
 
+    /**
+     * Fixed Figma savings samples until approved prices exist (`BP-01`): profit (79:3806) for the
+     * kitchen purifier with history, loss before break-even (94:4652) for the others.
+     */
+    fun sampleSavings(deviceId: String): SavingsEstimate =
+        if (deviceId == KITCHEN_ID) {
+            SavingsEstimate(
+                elapsedMonths = 12,
+                scheduledReplacementCostKrw = 208_000,
+                ploCareTotalCostKrw = 160_000,
+                netSavingsKrw = 48_000,
+                estimatedBreakEvenMonth = 6,
+                remainingMonthsToBreakEven = 0,
+                mode = SavingsReportMode.PROFIT,
+            )
+        } else {
+            // Figma shows the PloCare row as "-51,500원"; the cost is positive and the net is negative.
+            SavingsEstimate(
+                elapsedMonths = 3,
+                scheduledReplacementCostKrw = 0,
+                ploCareTotalCostKrw = 51_500,
+                netSavingsKrw = -51_500,
+                estimatedBreakEvenMonth = 6,
+                remainingMonthsToBreakEven = 3,
+                mode = SavingsReportMode.BREAK_EVEN_PENDING,
+            )
+        }
+
     fun kitchenPurifier(today: LocalDate, now: Instant): PurifierDevice {
         val totalCumulativeL = 4_820.0
         val recentDailyUsageL = listOf(

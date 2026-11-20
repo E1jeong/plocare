@@ -18,6 +18,7 @@ import com.senplo.plocare.ui.consumer.filtercare.FilterPurchaseScreen
 import com.senplo.plocare.ui.consumer.filtercare.VisitRequestScreen
 import com.senplo.plocare.ui.consumer.filtercare.decodeVisitFilterIds
 import com.senplo.plocare.ui.consumer.filtercare.encodeVisitFilterIds
+import com.senplo.plocare.ui.consumer.mypage.ContactAddressScreen
 import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareTheme
 
@@ -51,7 +52,6 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                 devices = devices,
                 now = now,
                 onSelectDevice = session::select,
-                onRenameDevice = session::renameSelectedDevice,
                 onRefreshTelemetry = { session.refreshSelectedTelemetry() },
                 onRemoveDevice = session::removeDevice,
                 onBookVisit = { filterIds ->
@@ -72,8 +72,26 @@ fun NavGraphBuilder.consumerGraph(navController: NavHostController) {
                         launchSingleTop = true
                     }
                 },
+                onOpenDeviceSettings = { deviceId ->
+                    devices.find { it.id == deviceId }?.let { device ->
+                        navController.navigate(Route.DeviceSettings.consumer(device.id, device.nickname)) {
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                onOpenContactAddress = {
+                    navController.navigate(Route.ContactAddress) { launchSingleTop = true }
+                },
             )
         }
+    }
+
+    // Figma 11 연락처·주소 (114:1721). Saving is not persisted yet; it returns to MyPage.
+    composable<Route.ContactAddress> {
+        ContactAddressScreen(
+            onBack = { navController.popBackStack() },
+            onSave = { navController.popBackStack() },
+        )
     }
 
     composable<Route.VisitRequest> { entry ->

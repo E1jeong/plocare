@@ -2,7 +2,6 @@ package com.senplo.plocare.domain.filter
 
 import kotlinx.datetime.LocalDate
 import kotlin.math.floor
-import kotlin.math.round
 
 data class WaterReportChart(
     val dailyUsageL: List<Double>,
@@ -12,16 +11,12 @@ data class WaterReportChart(
     val periodDays: Int,
 )
 
-data class WaterReportEco(
-    val bottlesSaved: Int,
-    val plasticKg: Double,
-    val carbonDetail: String,
-)
-
+/** Figma 05 history row (94:4602): `10.12`, a filter color square, the filters, and who replaced them. */
 data class WaterReportHistoryItem(
     val dateLabel: String,
     val title: String,
-    val detail: String,
+    val filterType: FilterType,
+    val sourceLabel: String,
 )
 
 fun buildWaterReportChart(device: PurifierDevice): WaterReportChart {
@@ -35,40 +30,24 @@ fun buildWaterReportChart(device: PurifierDevice): WaterReportChart {
     )
 }
 
-fun buildWaterReportEco(device: PurifierDevice): WaterReportEco {
-    val plasticKg = FilterLifeCalculator.plasticSavedKg(device.totalCumulativeL)
-    return WaterReportEco(
-        bottlesSaved = FilterLifeCalculator.bottlesSaved(device.totalCumulativeL),
-        plasticKg = plasticKg,
-        carbonDetail = waterReportCarbonDetail(plasticKg),
-    )
-}
-
 fun buildWaterReportHistory(device: PurifierDevice): List<WaterReportHistoryItem> =
     device.replacementHistory.map { record ->
-        val names = record.filterIds.mapNotNull { id ->
-            device.filters.find { it.id == id }?.let { filter -> "${filter.stage}단 ${filter.name}" }
-        }
-        val actor = when (record.source) {
-            ReplacementSource.SELF -> "직접 교체"
-            ReplacementSource.PARTNER ->
-                record.technicianMaskedName?.let { "PloCare 파트너 $it" } ?: "PloCare 파트너"
+        val filters = record.filterIds.mapNotNull { id -> device.filters.find { it.id == id } }
+        val title = when (filters.size) {
+            0 -> "필터 교체"
+            1 -> filters.single().let { "${it.stage}단 ${it.name}" }
+            else -> "${filters.joinToString("•") { it.stage.toString() }}단 묶음 교체"
         }
         WaterReportHistoryItem(
             dateLabel = formatWaterReportDate(record.replacedOn),
-            title = names.joinToString(" · ").ifEmpty { "필터 교체" },
-            detail = "$actor · 누적 ${formatWaterReportLiters(record.cumulativeL)}",
+            title = title,
+            filterType = filters.firstOrNull()?.filterType ?: FilterType.UNSPECIFIED,
+            sourceLabel = when (record.source) {
+                ReplacementSource.SELF -> "직접 교체"
+                ReplacementSource.PARTNER -> "방문 케어"
+            },
         )
     }
-
-fun waterReportCarbonDetail(plasticKg: Double): String =
-    "플라스틱 약 ${formatWaterReportDecimal(plasticKg)} kg 절감 기준 로컬 추정입니다. 탄소 kg은 서버에서 계산하지 않습니다."
-
-fun waterReportHistoryBoundary(): String =
-    "이 기기의 로컬 이력입니다. 서버에서 불러오지 않았습니다."
-
-fun waterReportHistoryEmptyCopy(): String =
-    "로컬 이력이 없습니다. 서버에서 불러오지 않았습니다."
 
 fun formatWaterReportDecimal(value: Double): String {
     val tenths = if (value >= 0.0) {
@@ -79,16 +58,8 @@ fun formatWaterReportDecimal(value: Double): String {
     return if (tenths % 10 == 0) (tenths / 10).toString() else "${tenths / 10}.${kotlin.math.abs(tenths) % 10}"
 }
 
+/** Figma `10.12`: month without padding, two-digit day. */
 internal fun formatWaterReportDate(date: LocalDate): String {
-    val month = (date.month.ordinal + 1).toString().padStart(2, '0')
     val day = date.day.toString().padStart(2, '0')
-    return "${date.year}.$month.$day"
-}
-
-internal fun formatWaterReportLiters(value: Double): String {
-    val amount = round(value).toInt()
-    val sign = if (amount < 0) "-" else ""
-    val digits = kotlin.math.abs(amount).toString()
-    val grouped = digits.reversed().chunked(3).joinToString(",").reversed()
-    return "$sign$grouped L"
+    return "${date.month.ordinal + 1}.$day"
 }

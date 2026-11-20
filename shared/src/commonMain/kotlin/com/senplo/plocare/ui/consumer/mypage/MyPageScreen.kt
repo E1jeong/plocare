@@ -1,235 +1,418 @@
 package com.senplo.plocare.ui.consumer.mypage
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.senplo.plocare.domain.filter.DashboardSnapshot
-import com.senplo.plocare.ui.consumer.ConsumerCard
-import com.senplo.plocare.ui.consumer.DeviceNicknameDialog
-import com.senplo.plocare.ui.consumer.ConsumerScreenHeader
-import com.senplo.plocare.ui.consumer.ConsumerSectionTitle
+import com.senplo.plocare.domain.filter.PurifierDevice
+import com.senplo.plocare.ui.components.PloCareToggle
+import com.senplo.plocare.ui.consumer.dashboard.AddPurifierSheet
+import com.senplo.plocare.ui.consumer.dashboard.chipTextStyle
 import com.senplo.plocare.ui.theme.PloCareColor
-import kotlin.time.Instant
+import com.senplo.plocare.ui.theme.PloCareTheme
+import org.jetbrains.compose.resources.painterResource
+import plocare.shared.generated.resources.Res
+import plocare.shared.generated.resources.ic_add
+import plocare.shared.generated.resources.ic_chevron_forward
+import plocare.shared.generated.resources.ic_person_edit
 
+// Figma 04 마이페이지 (79:3393)
 @Composable
 fun MyPageScreen(
-    snapshot: DashboardSnapshot,
-    now: Instant,
-    onOpenSettings: () -> Unit = {},
-    onRenameDevice: (String) -> Unit = {},
+    devices: List<PurifierDevice>,
+    onOpenDeviceSettings: (deviceId: String) -> Unit = {},
+    onOpenContactAddress: () -> Unit = {},
+    onBookVisit: () -> Unit = {},
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    var addSheetOpen by rememberSaveable { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header (79:3396)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "마이페이지",
+                style = typography.titleLarge,
+                color = colors.TextMain,
+                modifier = Modifier.semantics { heading() },
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 20.dp, bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(32.dp),
+        ) {
+            // 79:3403
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SectionTitle("내 정보 • 구독 • 예약을 한곳에서")
+                ProfileCard(onOpenContactAddress = onOpenContactAddress)
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SubscriptionCard(modifier = Modifier.weight(1f).fillMaxHeight())
+                    VisitCard(
+                        onBookVisit = onBookVisit,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+            }
+
+            // 79:3421
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SectionTitle("내 정수기")
+                    AddPurifierButton(onClick = { addSheetOpen = true })
+                }
+                ListCard {
+                    devices.forEachIndexed { index, device ->
+                        if (index > 0) ListDivider()
+                        NavigationRow(
+                            title = device.nickname,
+                            subtitle = purifierSummary(device),
+                            onClick = { onOpenDeviceSettings(device.id) },
+                        )
+                    }
+                }
+            }
+
+            // 79:3656
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SectionTitle("이용 • 설정")
+                SettingsCard()
+            }
+        }
+    }
+
+    if (addSheetOpen) {
+        AddPurifierSheet(onDismiss = { addSheetOpen = false })
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = PloCareTheme.typography.titleMid,
+        color = PloCareColor.TextMain,
+        modifier = Modifier.semantics { heading() },
+    )
+}
+
+@Composable
+private fun WhiteCard(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(12.dp),
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+        modifier = modifier
+            .background(PloCareColor.White, RoundedCornerShape(12.dp))
             .padding(16.dp),
-    ) {
-        ConsumerScreenHeader(title = "마이페이지", subtitle = "계정과 연결된 정수기를 관리하세요.")
-        Spacer(Modifier.height(18.dp))
-        ProfileCard()
-
-        Spacer(Modifier.height(22.dp))
-        ConsumerSectionTitle(title = "알림 설정")
-        Spacer(Modifier.height(10.dp))
-        NotificationCard()
-
-        Spacer(Modifier.height(22.dp))
-        ConsumerSectionTitle(title = "내 정수기")
-        Spacer(Modifier.height(10.dp))
-        DeviceCard(snapshot = snapshot, onOpenSettings = onOpenSettings, onRenameDevice = onRenameDevice)
-        Spacer(Modifier.height(10.dp))
-        HardwareStatusCard(snapshot = snapshot, now = now)
-
-        Spacer(Modifier.height(22.dp))
-        ConsumerSectionTitle(title = "고객 지원 및 약관")
-        Spacer(Modifier.height(10.dp))
-        SupportCard()
-        Spacer(Modifier.height(12.dp))
-        OutlinedButton(
-            onClick = {},
-            modifier = Modifier.fillMaxWidth(),
-            border = BorderStroke(1.dp, PloCareColor.SurfaceBorder),
-        ) {
-            Text("로그아웃", color = PloCareColor.TextSecondary)
-        }
-        Text(
-            "회원 탈퇴",
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(12.dp),
-            color = PloCareColor.TextTertiary,
-            fontSize = 11.sp,
-        )
-    }
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
 }
 
+// Profile card (79:3408). Shows the Figma sample until account data is wired (2026-11-20 user decision).
 @Composable
-private fun ProfileCard() {
-    ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+private fun ProfileCard(onOpenContactAddress: () -> Unit) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    WhiteCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(PloCareColor.AquaTeal.copy(alpha = 0.18f)),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(colors.Black0Surface, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("플", color = PloCareColor.AquaTeal, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "김",
+                    style = typography.titleMid.copy(fontWeight = FontWeight.Bold),
+                    color = colors.Primary,
+                    textAlign = TextAlign.Center,
+                )
             }
-            Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                Text("플로케어 데모 사용자", color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(3.dp))
-                Text("계정 정보 미연동", color = PloCareColor.TextSecondary, fontSize = 12.sp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "김*정 님",
+                    style = typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    color = colors.TextMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "Google 계정 kim****@gmail.com",
+                    style = typography.labelMidMedium,
+                    color = colors.Black50Muted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            // person_edit (79:3568): account editing has no destination yet.
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .clickable(role = Role.Button, onClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(Res.drawable.ic_person_edit),
+                    contentDescription = "내 정보 수정",
+                    tint = colors.GradientMain,
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun NotificationCard() {
-    var expiration by remember { mutableStateOf(true) }
-    var bundle by remember { mutableStateOf(true) }
-    var visit by remember { mutableStateOf(true) }
-    ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-        NotificationRow("필터 교체 알림", "교체 임박 및 초과 안내", expiration) { expiration = it }
-        HorizontalDivider(color = PloCareColor.SurfaceBorder)
-        NotificationRow("묶음 교체 추천", "14일 이내 예상 필터 추천", bundle) { bundle = it }
-        HorizontalDivider(color = PloCareColor.SurfaceBorder)
-        NotificationRow("방문 일정 알림", "예약 확정 및 방문 전 안내", visit) { visit = it }
-    }
-}
-
-@Composable
-private fun NotificationRow(title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = PloCareColor.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(description, color = PloCareColor.TextTertiary, fontSize = 10.sp)
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = PloCareColor.TextPrimary,
-                checkedTrackColor = PloCareColor.AquaTeal,
-                uncheckedTrackColor = PloCareColor.SurfaceDark,
-            ),
+        // 79:3569
+        ActionBar(
+            label = "연락처 • 주소 미등록",
+            action = "등록하기",
+            onClick = onOpenContactAddress,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
+/** Figma 79:3569 / 79:3621: `#F6F8FD` bar with a bold link and an 18dp chevron. */
 @Composable
-private fun DeviceCard(snapshot: DashboardSnapshot, onOpenSettings: () -> Unit, onRenameDevice: (String) -> Unit) {
-    val device = snapshot.device
-    var editing by remember(device.id) { mutableStateOf(false) }
-    ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(device.nickname, color = PloCareColor.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(3.dp))
-                Text("${device.filters.size}단계 · 가구 ${device.householdSize}인", color = PloCareColor.TextSecondary, fontSize = 12.sp)
-            }
-            Text("닉네임 편집", color = PloCareColor.AquaTeal, fontSize = 11.sp,
-                modifier = Modifier.clickable { editing = true })
+private fun ActionBar(
+    action: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+) {
+    val colors = PloCareColor
+    val style = chipTextStyle()
+    Row(
+        modifier = modifier
+            .heightIn(min = 38.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.Black0Surface)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (label != null) {
+            Text(text = label, style = style, color = colors.Primary, modifier = Modifier.weight(1f, fill = false))
         }
-        Spacer(Modifier.height(12.dp))
-        HorizontalDivider(color = PloCareColor.SurfaceBorder)
-        Spacer(Modifier.height(12.dp))
-        InfoRow("기기 ID", device.id)
-        InfoRow("센서 설치일", device.installedOn.toString())
-        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("정수기 설정 열기  ›", color = PloCareColor.AquaTeal, fontSize = 12.sp)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = action, style = style.copy(fontWeight = FontWeight.Bold), color = colors.Primary)
+            Icon(
+                painter = painterResource(Res.drawable.ic_chevron_forward),
+                contentDescription = null,
+                tint = colors.Primary,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
-    if (editing) {
-        DeviceNicknameDialog(device.nickname, onDismiss = { editing = false }) {
-            onRenameDevice(it)
-            editing = false
+}
+
+// Subscription card (79:3590): the Figma sample until a subscription backend exists (NV-07, BP-01).
+@Composable
+private fun SubscriptionCard(modifier: Modifier = Modifier) {
+    WhiteCard(modifier = modifier, verticalArrangement = Arrangement.SpaceBetween) {
+        CardHeading(label = "정기 구독", value = "이용 중")
+        // 79:3629: 38dp row; Figma's 8px line height is its typography anomaly, so the chip style is used.
+        Box(modifier = Modifier.height(38.dp), contentAlignment = Alignment.CenterStart) {
+            Text(text = "다음 배송 11월 5일", style = chipTextStyle(), color = PloCareColor.Primary)
         }
     }
 }
 
+// Visit card (79:3610): Figma has only the empty state, so it is shown as designed.
 @Composable
-private fun HardwareStatusCard(snapshot: DashboardSnapshot, now: Instant) {
-    val elapsed = now - snapshot.device.lastTelemetryAt
-    val minutes = elapsed.inWholeMinutes
-    val hours = elapsed.inWholeHours
-    val syncText = when {
-        snapshot.sensorStale || hours >= 24L -> "24시간 이상 미수신"
-        minutes < 1L -> "방금 전 동기화"
-        minutes < 60L -> "${minutes}분 전 동기화"
-        else -> "${hours}시간 전 동기화"
-    }
-    ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-        Text("하드웨어 상태", color = PloCareColor.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(12.dp))
-        StatusRow("센서 전원", if (snapshot.sensorStale) "확인 필요" else "정상", !snapshot.sensorStale)
-        StatusRow("통신", if (snapshot.sensorStale) "미수신" else "연결됨", !snapshot.sensorStale)
-        StatusRow("마지막 데이터", syncText, !snapshot.sensorStale)
+private fun VisitCard(
+    onBookVisit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    WhiteCard(modifier = modifier) {
+        CardHeading(label = "방문 예약", value = "예약 없음")
+        ActionBar(action = "방문 예약하기", onClick = onBookVisit, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = PloCareColor.TextTertiary, fontSize = 11.sp)
-        Text(value, color = PloCareColor.TextSecondary, fontSize = 11.sp)
+private fun CardHeading(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(text = label, style = PloCareTheme.typography.labelMidMedium, color = PloCareColor.TextMain)
+        Text(text = value, style = PloCareTheme.typography.titleMid, color = PloCareColor.TextMain)
     }
 }
 
+// 79:3630: borderless text button with an 18dp add glyph.
 @Composable
-private fun StatusRow(label: String, value: String, good: Boolean) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(7.dp).background(if (good) PloCareColor.StatusGood else PloCareColor.StatusWarn, CircleShape))
-        Text(label, modifier = Modifier.padding(start = 8.dp).weight(1f), color = PloCareColor.TextSecondary, fontSize = 12.sp)
-        Text(value, color = PloCareColor.TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+private fun AddPurifierButton(onClick: () -> Unit) {
+    val colors = PloCareColor
+    Row(
+        modifier = Modifier
+            .heightIn(min = 38.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // ic_add draws the 13dp glyph centered in 24dp; Figma add_2 centers it in 18dp.
+        Box(modifier = Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_add),
+                contentDescription = null,
+                tint = colors.Primary,
+                modifier = Modifier.requiredSize(24.dp),
+            )
+        }
+        Text(text = "정수기 추가", style = chipTextStyle().copy(fontWeight = FontWeight.Bold), color = colors.Primary)
     }
 }
 
+/** Figma "Background+Border" list card (79:3642, 79:3664). */
 @Composable
-private fun SupportCard() {
-    ConsumerCard(modifier = Modifier.fillMaxWidth()) {
-        SupportRow("이용약관")
-        HorizontalDivider(color = PloCareColor.SurfaceBorder)
-        SupportRow("개인정보 처리방침")
-        HorizontalDivider(color = PloCareColor.SurfaceBorder)
-        SupportRow("오픈소스 라이선스")
-        HorizontalDivider(color = PloCareColor.SurfaceBorder)
-        SupportRow("고객센터")
-    }
+private fun ListCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PloCareColor.White, RoundedCornerShape(12.dp))
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        content = content,
+    )
 }
 
 @Composable
-private fun SupportRow(label: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, modifier = Modifier.weight(1f), color = PloCareColor.TextPrimary, fontSize = 13.sp)
-        Text("›", color = PloCareColor.TextTertiary, fontSize = 18.sp)
+private fun ListDivider() {
+    HorizontalDivider(thickness = 1.dp, color = PloCareColor.Black10)
+}
+
+@Composable
+private fun RowTexts(title: String, subtitle: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            style = PloCareTheme.typography.bodyLarge,
+            color = PloCareColor.TextMain,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(text = subtitle, style = PloCareTheme.typography.labelMidMedium, color = PloCareColor.Black50Muted)
+    }
+}
+
+/** List row (283:6603): title, subtitle, and a trailing 24dp chevron. */
+@Composable
+private fun NavigationRow(title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RowTexts(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
+        Icon(
+            painter = painterResource(Res.drawable.ic_chevron_forward),
+            contentDescription = null,
+            tint = PloCareColor.Black50Muted,
+        )
+    }
+}
+
+// Settings list (79:3664). Destinations (subscription, history, FAQ, inquiry) do not exist yet and
+// the replacement alert toggle is local state only.
+@Composable
+private fun SettingsCard() {
+    var replacementAlert by rememberSaveable { mutableStateOf(false) }
+    ListCard {
+        NavigationRow(title = "구독 • 결제 관리", subtitle = "결제 수단 • 구독 해지", onClick = {})
+        ListDivider()
+        NavigationRow(title = "예약 • 교체 이력", subtitle = "방문 예약 • 필터 구매 내역", onClick = {})
+        ListDivider()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RowTexts(title = "교체 알림", subtitle = "교체가 가까울 때 알림 받기", modifier = Modifier.weight(1f))
+            PloCareToggle(
+                checked = replacementAlert,
+                onCheckedChange = { replacementAlert = it },
+                modifier = Modifier.semantics { contentDescription = "교체 알림" },
+            )
+        }
+        ListDivider()
+        NavigationRow(title = "자주 묻는 질문", subtitle = "종류별 Q&A • 먼저 찾아보기", onClick = {})
+        ListDivider()
+        NavigationRow(
+            title = "1:1 문의 • 약관",
+            subtitle = "전화 대신 문의 → 답변 또는 담당자 전화(안심번호)",
+            onClick = {},
+        )
     }
 }

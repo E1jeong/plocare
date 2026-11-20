@@ -67,10 +67,6 @@ class ConsumerDeviceSession(
         )
     }
 
-    fun renameSelectedDevice(nickname: String) {
-        repository.renameDevice(selectedDevice().id, nickname)
-    }
-
     fun removeDevice(id: String) {
         repository.removeDevice(id)
         if (selectedId.value == id) {

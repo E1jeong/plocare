@@ -34,12 +34,13 @@ fun ConsumerMainScreen(
     devices: List<PurifierDevice>,
     now: Instant,
     onSelectDevice: (String) -> Unit,
-    onRenameDevice: (String) -> Unit,
     onRefreshTelemetry: () -> Unit,
     onRemoveDevice: (String) -> Unit,
     onBookVisit: (List<String>) -> Unit = {},
     onOpenPurchase: (List<String>) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenDeviceSettings: (deviceId: String) -> Unit = {},
+    onOpenContactAddress: () -> Unit = {},
 ) {
     // Figma GNB/customer (74:878)
     val tabItems = ConsumerTabItem.entries.map { tab ->
@@ -82,12 +83,12 @@ fun ConsumerMainScreen(
                     onOpenPurchase = onOpenPurchase,
                     onOpenSettings = onOpenSettings,
                 )
-                ConsumerTabItem.WATER_REPORT -> WaterReportScreen(device = snapshot.device)
+                ConsumerTabItem.WATER_REPORT -> WaterReportScreen(snapshot = snapshot)
                 ConsumerTabItem.MY_PAGE -> MyPageScreen(
-                    snapshot = snapshot,
-                    now = now,
-                    onOpenSettings = onOpenSettings,
-                    onRenameDevice = onRenameDevice,
+                    devices = devices,
+                    onOpenDeviceSettings = onOpenDeviceSettings,
+                    onOpenContactAddress = onOpenContactAddress,
+                    onBookVisit = { onBookVisit(emptyList()) },
                 )
             }
         }

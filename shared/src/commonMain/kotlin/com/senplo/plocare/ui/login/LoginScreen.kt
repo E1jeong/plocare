@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.senplo.plocare.auth.GoogleUser
 import com.senplo.plocare.auth.rememberGoogleAuthService
+import com.senplo.plocare.auth.showsAppleSignIn
 import com.senplo.plocare.ui.components.PloCareButton
 import com.senplo.plocare.ui.components.PloCareSegmentedTab
 import com.senplo.plocare.ui.theme.AppAudience
@@ -302,12 +303,15 @@ private fun SocialLoginRow(
     enabled: Boolean,
     onProviderClick: (SocialProvider) -> Unit,
 ) {
+    // Figma 98:5158 spreads four 60dp buttons over the content width; hiding Apple on Android keeps
+    // that gap and centers the remaining three.
+    val gap = (CONTENT_WIDTH - 60.dp * SocialProvider.entries.size) / (SocialProvider.entries.size - 1)
     Row(
         modifier = Modifier.width(CONTENT_WIDTH),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SocialProvider.entries.forEach { provider ->
+        SocialProvider.entries.filter { it != SocialProvider.APPLE || showsAppleSignIn }.forEach { provider ->
             Box(
                 modifier = Modifier
                     .size(60.dp)
