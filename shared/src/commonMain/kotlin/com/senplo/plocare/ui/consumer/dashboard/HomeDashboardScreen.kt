@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -80,6 +82,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.senplo.plocare.domain.filter.MakerGroup
 import com.senplo.plocare.ui.components.PloCareBottomSheet
 import com.senplo.plocare.ui.components.PloCareButton
@@ -90,6 +93,7 @@ import com.senplo.plocare.ui.components.PloCareChip
 import com.senplo.plocare.ui.components.PloCareTextField
 import plocare.shared.generated.resources.ic_add
 import plocare.shared.generated.resources.ic_chevron_down
+import plocare.shared.generated.resources.ic_close
 import plocare.shared.generated.resources.ic_delete
 import kotlin.time.Instant
 
@@ -771,6 +775,133 @@ private fun RemovePurifierDialog(
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
+    }
+}
+
+/**
+ * Replacement-forecast modal (74:298). UI only: when it appears and what `앱 나가기` does are
+ * feature-phase decisions, so no screen opens it yet.
+ */
+@Composable
+internal fun ReplacementForecastDialog(
+    copy: ReplacementForecastCopy,
+    onDismiss: () -> Unit,
+    onExitApp: () -> Unit,
+    onReplace: () -> Unit,
+) {
+    // The platform default dialog width is narrower than the Figma 340dp card.
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        ReplacementForecastCard(
+            copy = copy,
+            onDismiss = onDismiss,
+            onExitApp = onExitApp,
+            onReplace = onReplace,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+    }
+}
+
+@Composable
+internal fun ReplacementForecastCard(
+    copy: ReplacementForecastCopy,
+    onDismiss: () -> Unit,
+    onExitApp: () -> Unit,
+    onReplace: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = PloCareColor
+    val typography = PloCareTheme.typography
+    val lines = listOfNotNull(copy.purchaseLine, copy.companionLine)
+
+    Box(
+        modifier = modifier
+            .widthIn(max = 340.dp)
+            .fillMaxWidth()
+            .background(colors.White, RoundedCornerShape(16.dp)),
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 20.dp, top = 32.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = copy.headline,
+                    style = typography.titleLarge,
+                    color = colors.TextMain,
+                    // Keep the headline clear of the close button.
+                    modifier = Modifier.padding(end = 32.dp).semantics { heading() },
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    copy.chips.forEach { chip ->
+                        Text(
+                            text = chip,
+                            style = typography.labelMidMedium,
+                            color = colors.Black60Body,
+                            modifier = Modifier
+                                .background(colors.Black0Surface, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.Black0Surface, RoundedCornerShape(12.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                lines.forEach { line ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(modifier = Modifier.size(8.dp), contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.size(4.dp).background(colors.Primary, CircleShape))
+                        }
+                        Text(
+                            text = line,
+                            style = typography.labelMidMedium,
+                            color = colors.TextMain,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PloCareButton(
+                    text = "앱 나가기",
+                    onClick = onExitApp,
+                    variant = PloCareButtonVariant.Secondary,
+                    modifier = Modifier.weight(1f),
+                )
+                PloCareButton(
+                    text = "교체하기",
+                    onClick = onReplace,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        // Figma places the 24dp close icon 21dp from the top and 20dp from the end; the 48dp touch
+        // target is centered on it.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 9.dp, end = 8.dp)
+                .size(48.dp)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(Res.drawable.ic_close),
+                contentDescription = "닫기",
+                tint = colors.TextMain,
+            )
         }
     }
 }

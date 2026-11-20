@@ -79,6 +79,29 @@ class DashboardCopyTest {
         assertNull(cycleOnly.remainingLabel)
     }
 
+    @Test
+    fun forecastMatchesFigmaSampleWithCompanionFilter() {
+        // Figma 74:298: 11/10 replacement, D-12, 50 L left, 11/3 purchase date, companion 17 days later.
+        val snapshot = snapshotWith(
+            sampleFilter(id = "b", stage = 2, days = 29),
+            sampleFilter(days = 12, remainingL = 50.0),
+        )
+        val forecast = assertNotNull(replacementForecast(snapshot))
+        assertEquals("a", forecast.filterId)
+        assertEquals("9월 22일(화) 교체 예상", forecast.headline)
+        assertEquals(listOf("1단 세디먼트", "D-12", "남은 양 50L"), forecast.chips)
+        assertEquals("구매 권장일 9월 15일(화) • 배송 기간 포함", forecast.purchaseLine)
+        assertEquals("함께 갈면 좋은 필터 2단 세디먼트 (17일 차이)", forecast.companionLine)
+    }
+
+    @Test
+    fun forecastDropsMissingParts() {
+        assertNull(replacementForecast(snapshotWith()))
+        val single = assertNotNull(replacementForecast(snapshotWith(sampleFilter(rated = 0.0, days = 0))))
+        assertEquals(listOf("1단 세디먼트", "D-day"), single.chips)
+        assertNull(single.companionLine)
+    }
+
     private fun snapshotWith(vararg filters: FilterSnapshot) =
         buildDashboardSnapshot(DashboardFixtures.kitchenPurifier(today, now), now, timeZone)
             .copy(today = today, filters = filters.toList())

@@ -3,6 +3,7 @@ package com.senplo.plocare.ui.consumer.dashboard
 import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.domain.filter.FilterLifeCalculator
 import com.senplo.plocare.domain.filter.FilterSnapshot
+import com.senplo.plocare.ui.consumer.filtercare.dDayBadge
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -115,3 +116,42 @@ internal fun replacementBanner(snapshot: DashboardSnapshot): ReplacementBannerCo
         purchaseHint = purchaseHint,
     )
 }
+
+internal data class ReplacementForecastCopy(
+    val filterId: String,
+    val headline: String,
+    val chips: List<String>,
+    val purchaseLine: String,
+    val companionLine: String?,
+)
+
+/**
+ * Figma replacement-forecast modal 74:298: the filter with the nearest effective date, plus the next
+ * nearest filter as the one worth replacing together. When the modal appears is a feature-phase decision.
+ */
+internal fun replacementForecast(snapshot: DashboardSnapshot): ReplacementForecastCopy? {
+    val sorted = snapshot.filters.sortedBy { it.effectiveRemainingDays }
+    val nearest = sorted.firstOrNull() ?: return null
+    val companion = sorted.getOrNull(1)
+    val purchaseBy = nearest.effectiveDate.minus(PURCHASE_LEAD_DAYS, DateTimeUnit.DAY)
+    return ReplacementForecastCopy(
+        filterId = nearest.id,
+        headline = "${formatKoreanDateWithWeekday(nearest.effectiveDate)} 교체 예상",
+        chips = listOfNotNull(
+            filterTitle(nearest),
+            dDayBadge(nearest.effectiveRemainingDays),
+            if (nearest.ratedCapacityL > 0.0 && nearest.remainingL > 0.0) {
+                "남은 양 ${formatIntWithComma(round(nearest.remainingL).toInt())}L"
+            } else {
+                null
+            },
+        ),
+        purchaseLine = "구매 권장일 ${formatKoreanDateWithWeekday(purchaseBy)} • 배송 기간 포함",
+        companionLine = companion?.let {
+            "함께 갈면 좋은 필터 ${filterTitle(it)} (${it.effectiveRemainingDays - nearest.effectiveRemainingDays}일 차이)"
+        },
+    )
+}
+
+private fun formatKoreanDateWithWeekday(date: LocalDate): String =
+    "${formatKoreanMonthDay(date)}(${formatKoreanWeekday(date)})"
