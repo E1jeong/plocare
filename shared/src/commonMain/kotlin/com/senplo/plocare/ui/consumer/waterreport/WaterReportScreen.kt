@@ -306,15 +306,15 @@ private fun CostRow(label: String, value: String) {
     }
 }
 
-// History card (94:4584); empty state (94:4718) keeps the 124dp card.
+// History card (94:4584); empty state (94:4718) keeps the 124dp card. The Partner work record reuses it.
 @Composable
-private fun HistoryCard(history: List<WaterReportHistoryItem>) {
+internal fun HistoryCard(history: List<WaterReportHistoryItem>, modifier: Modifier = Modifier) {
     val colors = PloCareColor
     val typography = PloCareTheme.typography
     val shape = RoundedCornerShape(12.dp)
     if (history.isEmpty()) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .height(124.dp)
                 .background(colors.White, shape)
@@ -326,7 +326,7 @@ private fun HistoryCard(history: List<WaterReportHistoryItem>) {
         return
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(colors.White, shape)
             .padding(20.dp),

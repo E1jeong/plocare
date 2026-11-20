@@ -34,6 +34,8 @@ data class PloCareColors(
     val SelectedCardSurface: Color = Color(0xFFEAF8FD), // selected device card (206:2427)
     val GrayChateau: Color = Color(0xFF9CA1A8), // named style "Gray Chateau", bottom-sheet subtitle
     val StatusAlertContainer: Color = Color(0x26FF4D4F), // danger % badge fill, #FF4D4F @ 15%
+    val MapDone: Color = Color(0xFF34CB43), // completed map pin and route (127:1427, 127:1370)
+    val StatusDone: Color = Color(0xFF4BE15A), // `완료 N건` chip dot and text (126:1134)
 
     // Figma Filter colors (15:320)
     val FilterSediment: Color = Color(0xFF80C15E),

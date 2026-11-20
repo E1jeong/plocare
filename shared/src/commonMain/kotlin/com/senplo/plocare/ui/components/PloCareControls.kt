@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -201,9 +202,11 @@ fun PloCareCheckMark(
     checked: Boolean,
     modifier: Modifier = Modifier,
     uncheckedStyle: PloCareCheckboxStyle = PloCareCheckboxStyle.SubtleCheck,
+    // Figma radio rows (127:1875) draw the same `circle/` marks as circles.
+    shape: Shape = RoundedCornerShape(4.dp),
 ) {
     val colors = PloCareColor
-    val boxShape = RoundedCornerShape(4.dp)
+    val boxShape = shape
     val boxColor = when {
         checked -> colors.Primary
         uncheckedStyle == PloCareCheckboxStyle.SubtleCheck -> colors.Black0Surface
