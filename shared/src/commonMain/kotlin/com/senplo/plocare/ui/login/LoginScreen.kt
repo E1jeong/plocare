@@ -57,6 +57,7 @@ import com.senplo.plocare.ui.components.PloCareButton
 import com.senplo.plocare.ui.components.PloCareSegmentedTab
 import com.senplo.plocare.ui.theme.AppAudience
 import com.senplo.plocare.ui.theme.PloCareColor
+import com.senplo.plocare.ui.theme.PloCareColors
 import com.senplo.plocare.ui.theme.PloCareTheme
 import com.senplo.plocare.ui.theme.rememberBrandFontFamily
 import kotlinx.coroutines.launch
@@ -79,14 +80,20 @@ private val BRAND_MARK_HEIGHT = 136.83.dp
 private enum class SocialProvider(
     val label: String,
     val icon: DrawableResource,
-    val background: Color,
     val iconWidth: Dp,
     val iconHeight: Dp,
 ) {
-    KAKAO("카카오", Res.drawable.social_kakao, Color(0xFFFEE500), 17.dp, 16.dp),
-    NAVER("네이버", Res.drawable.social_naver, Color(0xFF03C75A), 16.dp, 16.dp),
-    GOOGLE("Google", Res.drawable.social_google, Color(0xFFF6F6F6), 17.dp, 18.dp),
-    APPLE("Apple", Res.drawable.social_apple, Color(0xFF333333), 14.dp, 18.dp),
+    KAKAO("카카오", Res.drawable.social_kakao, 17.dp, 16.dp),
+    NAVER("네이버", Res.drawable.social_naver, 16.dp, 16.dp),
+    GOOGLE("Google", Res.drawable.social_google, 18.dp, 18.dp),
+    APPLE("Apple", Res.drawable.social_apple, 14.dp, 18.dp),
+}
+
+private fun SocialProvider.background(colors: PloCareColors): Color = when (this) {
+    SocialProvider.KAKAO -> colors.SocialKakao
+    SocialProvider.NAVER -> colors.SocialNaver
+    SocialProvider.GOOGLE -> colors.SocialGoogle
+    SocialProvider.APPLE -> colors.SocialApple
 }
 
 @Composable
@@ -316,7 +323,7 @@ private fun SocialLoginRow(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-                    .background(provider.background)
+                    .background(provider.background(PloCareColor))
                     .clickable(
                         enabled = enabled,
                         role = Role.Button,

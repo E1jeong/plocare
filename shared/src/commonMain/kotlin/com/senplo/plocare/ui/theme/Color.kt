@@ -43,6 +43,13 @@ data class PloCareColors(
     // Not in Figma: unspecified/composite filter color pending designer confirmation (Black 40)
     val FilterUnassigned: Color = Color(0xFFADB2B8),
 
+    // Social login buttons (98:5158): provider brand-guide values, the one exception to Figma-only
+    // tokens (user decision 2026-11-19).
+    val SocialKakao: Color = Color(0xFFFEE500), // Kakao Login guide container, black symbol
+    val SocialNaver: Color = Color(0xFF03C75A), // NAVER green, white logo
+    val SocialGoogle: Color = Color(0xFFF2F2F2), // Google Sign-In "neutral" theme, no stroke
+    val SocialApple: Color = Color(0xFF000000), // Sign in with Apple "black" style, white logo
+
     // Legacy compatibility tokens mapped to Light Theme
     val BrandNavy: Color,
     val BgDeep: Color,
