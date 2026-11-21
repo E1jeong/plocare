@@ -92,12 +92,12 @@ internal fun ContactAddressScreen(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+                .padding(top = 8.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 ContactPhoneField(
                     digits = draft.phoneDigits,
@@ -138,7 +138,7 @@ internal fun ContactAddressScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 24.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
         ) {
             PloCareButton(
                 text = "동의하고 저장",

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.senplo.plocare.ui.theme.LightSystemBarIconsEffect
 import com.senplo.plocare.ui.theme.PloCareColor
 import com.senplo.plocare.ui.theme.rememberBrandFontFamily
 import kotlinx.coroutines.delay
@@ -69,6 +70,7 @@ fun SplashScreen(
     val colors = PloCareColor
     val brandFont = rememberBrandFontFamily()
     val navigationBarBottom = WindowInsets.navigationBars
+    LightSystemBarIconsEffect()
 
     Box(
         modifier = Modifier
