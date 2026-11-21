@@ -4,7 +4,7 @@ body {
     height: 100%;
     margin: 0;
     overflow: hidden;
-    background: #071a2e;
+    background: #f7f7f8;
 }
 
 body {
@@ -15,5 +15,5 @@ body {
 #webApp {
     width: min(100%, 440px);
     height: 100%;
-    box-shadow: 0 0 24px rgb(0 0 0 / 12%);
+    box-shadow: 0 0 24px rgb(31 95 139 / 10%);
 }
