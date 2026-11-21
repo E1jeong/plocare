@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.senplo.plocare.domain.filter.DashboardSnapshot
 import com.senplo.plocare.ui.consumer.support.SupportHeader
@@ -124,14 +123,12 @@ private fun CustomerCard(visit: PartnerVisitFixture, badge: VisitBadgeKind) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             PartnerSectionHeading("${visit.maskedName} •")
             Text(
                 text = visit.customerId,
                 style = typography.bodyLarge,
                 color = colors.Primary,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f),
             )
         }
         Text(text = visit.address, style = typography.labelMidMedium, color = colors.Black70)

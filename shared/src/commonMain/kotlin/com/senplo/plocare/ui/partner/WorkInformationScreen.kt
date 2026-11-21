@@ -176,6 +176,7 @@ internal fun WorkInformationScreen(
                                     } else {
                                         selectedFilterIds + filter.id
                                     }
+                                    formError = null
                                 },
                             )
                         }
@@ -187,7 +188,10 @@ internal fun WorkInformationScreen(
                                 PloCareChip(
                                     text = type.label,
                                     selected = selectedType == type,
-                                    onClick = { selectedType = type },
+                                    onClick = {
+                                        selectedType = type
+                                        formError = null
+                                    },
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -215,9 +219,18 @@ internal fun WorkInformationScreen(
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         PartnerSectionHeading("하드웨어 점검")
-                        CheckRow("센서가 파이프에 단단히 고정됨", sensorClamped) { sensorClamped = it }
-                        CheckRow("배관 누수 없음", noLeak) { noLeak = it }
-                        CheckRow("통신 상태 확인됨", commsVerified) { commsVerified = it }
+                        CheckRow("센서가 파이프에 단단히 고정됨", sensorClamped) {
+                            sensorClamped = it
+                            formError = null
+                        }
+                        CheckRow("배관 누수 없음", noLeak) {
+                            noLeak = it
+                            formError = null
+                        }
+                        CheckRow("통신 상태 확인됨", commsVerified) {
+                            commsVerified = it
+                            formError = null
+                        }
                     }
                     formError?.let {
                         Text(it, style = typography.labelMidMedium, color = colors.StatusAlert)

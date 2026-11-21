@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -532,11 +534,15 @@ private fun PendingRequestCard(request: PartnerVisitRequest, onPickDate: () -> U
             }
         }
         // Customer's three preferred dates (127:1750)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             request.options.forEach { option ->
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .background(colors.Black0Surface, RoundedCornerShape(8.dp))
                         .padding(horizontal = 6.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center,

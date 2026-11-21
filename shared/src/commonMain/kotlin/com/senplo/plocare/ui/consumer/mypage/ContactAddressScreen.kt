@@ -80,7 +80,7 @@ internal fun ContactAddressScreen(
             ) {
                 Icon(painter = painterResource(Res.drawable.ic_back), contentDescription = "뒤로", tint = colors.TextMain)
                 Text(
-                    text = "연락처 •주소 등록",
+                    text = "연락처 • 주소 등록",
                     style = typography.titleLarge,
                     color = colors.TextMain,
                     modifier = Modifier.semantics { heading() },

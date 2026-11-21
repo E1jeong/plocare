@@ -40,7 +40,7 @@ internal fun PartnerMainScreen(
     }
 
     Scaffold(
-        containerColor = PloCareColor.White,
+        containerColor = if (currentTab == PartnerTab.MY) PloCareColor.Background else PloCareColor.White,
         bottomBar = {
             PloCareBottomBar(
                 items = tabItems,
@@ -76,7 +76,7 @@ internal fun PartnerMainScreen(
                     onSetStock = onSetStock,
                     onAddStock = onAddStock,
                 )
-                PartnerTab.MY -> PartnerMyPageTab()
+                PartnerTab.MY -> PartnerMyPageTab(today = today)
             }
         }
     }
